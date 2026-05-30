@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milk Tracker — Twins</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --cream: #fdf6ee;
+    --warm-white: #fffbf5;
+    --blush: #f5c6c6;
+    --rose: #e8788a;
+    --deep-rose: #c45067;
+    --gold: #d4a853;
+    --soft-gold: #f0dca8;
+    --sage: #7fa688;
+    --deep-sage: #4d7a59;
+    --sky: #7bb3cc;
+    --deep-sky: #3d7fa0;
+    --lavender: #b0a0cc;
+    --text-dark: #2d2020;
+    --text-mid: #6b4c4c;
+    --text-light: #a08080;
+    --shadow: rgba(120,60,60,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding-bottom: 100px;
+  }
+
+  header {
+    background: linear-gradient(135deg, #fce8e8 0%, #fdf0e0 50%, #e8f0f8 100%);
+    padding: 24px 20px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--soft-gold);
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '🤱';
+    position: absolute; top: 10px; left: 16px; font-size: 28px; opacity: 0.4;
+  }
+  header::after {
+    content: '👶👶';
+    position: absolute; top: 12px; right: 14px; font-size: 22px; opacity: 0.4;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    color: var(--deep-rose);
+    letter-spacing: -0.5px;
+  }
+  header p {
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+
+  /* Stock Alert Banner */
+  #stockAlert {
+    margin: 12px 16px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  #stockAlert.ok { background: #d4f0dc; color: #1e6b35; border: 1px solid #8acca0; display: block; }
+  #stockAlert.warn { background: #fff3d4; color: #8a6000; border: 1px solid #f0c855; display: block; }
+  #stockAlert.danger { background: #fde8e8; color: #8a0000; border: 1px solid #e88888; display: block; }
+
+  /* Nav tabs */
+  nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--warm-white);
+    border-top: 1px solid var(--soft-gold);
+    display: flex;
+    z-index: 100;
+    box-shadow: 0 -4px 20px var(--shadow);
+  }
+  nav button {
+    flex: 1;
+    padding: 10px 4px 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-light);
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: color 0.2s;
+  }
+  nav button span.icon { font-size: 1.3rem; }
+  nav button.active { color: var(--deep-rose); }
+  nav button.active span.icon { transform: scale(1.15); }
+
+  /* Pages */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards */
+  .card {
+    background: var(--warm-white);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px var(--shadow);
+    border: 1px solid rgba(212,168,83,0.2);
+  }
+  .card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--deep-rose);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Summary tiles */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .tile {
+    background: var(--warm-white);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow);
+    border: 1px solid rgba(212,168,83,0.2);
+  }
+  .tile .val { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--deep-rose); }
+  .tile .lbl { font-size: 0.7rem; color: var(--text-mid); margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tile.sage .val { color: var(--deep-sage); }
+  .tile.sky .val { color: var(--deep-sky); }
+  .tile.gold .val { color: #9a7010; }
+
+  /* Form elements */
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  label:first-child { margin-top: 0; }
+  input[type=number], input[type=text], input[type=datetime-local], select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--soft-gold);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: var(--cream);
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--rose); }
+
+  /* Breast inputs side by side */
+  .breast-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .breast-box { text-align: center; }
+  .breast-box label { color: var(--deep-rose); }
+  .total-display {
+    text-align: center;
+    padding: 10px;
+    background: linear-gradient(135deg, #fce8e8, #fff3d4);
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+  .total-display span { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--deep-rose); }
+  .total-display small { display: block; font-size: 0.75rem; color: var(--text-mid); }
+
+  /* Toggle buttons */
+  .toggle-group { display: flex; gap: 8px; margin-top: 4px; }
+  .toggle-btn {
+    flex: 1; padding: 10px; border: 1.5px solid var(--soft-gold);
+    border-radius: 10px; background: var(--cream); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+    color: var(--text-mid); transition: all 0.2s;
+  }
+  .toggle-btn.active-freeze { background: #ddeeff; border-color: var(--sky); color: var(--deep-sky); }
+  .toggle-btn.active-fridge { background: #eefff4; border-color: var(--sage); color: var(--deep-sage); }
+  .toggle-btn.active-home { background: #eefff4; border-color: var(--sage); color: var(--deep-sage); }
+  .toggle-btn.active-hospital { background: #ddeeff; border-color: var(--sky); color: var(--deep-sky); }
+
+  /* Primary button */
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--rose), var(--deep-rose));
+    color: white; border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+    cursor: pointer; margin-top: 14px;
+    box-shadow: 0 4px 14px rgba(196,80,103,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(196,80,103,0.25); }
+  .btn-secondary {
+    width: 100%; padding: 11px;
+    background: var(--cream); color: var(--text-mid);
+    border: 1.5px solid var(--soft-gold); border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s;
+  }
+  .btn-secondary:hover { background: var(--soft-gold); }
+
+  /* Log list */
+  .log-item {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--warm-white);
+    border: 1px solid rgba(212,168,83,0.2);
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .log-item .log-main { flex: 1; }
+  .log-item .log-amount { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--deep-rose); }
+  .log-item .log-meta { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
+  .log-item .log-badge {
+    font-size: 0.65rem; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .badge-freeze { background: #ddeeff; color: var(--deep-sky); }
+  .badge-fridge { background: #eefff4; color: var(--deep-sage); }
+  .badge-feed { background: #fce8e8; color: var(--deep-rose); }
+  .badge-thaw { background: #fff3d4; color: #8a6000; }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 1rem; padding: 2px 6px; }
+
+  /* Stock section */
+  .stock-section { margin-bottom: 6px; }
+  .stock-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-mid); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .stock-bar-bg { background: #ede8e0; border-radius: 8px; height: 12px; overflow: hidden; margin-bottom: 3px; }
+  .stock-bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+  .fill-sage { background: linear-gradient(90deg, var(--sage), var(--deep-sage)); }
+  .fill-sky { background: linear-gradient(90deg, var(--sky), var(--deep-sky)); }
+  .fill-rose { background: linear-gradient(90deg, var(--blush), var(--rose)); }
+
+  /* Feeds needed */
+  .feed-need {
+    background: linear-gradient(135deg, #fce8e8, #fff3d4);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(212,168,83,0.3);
+  }
+  .feed-need .fn-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-mid); letter-spacing: 0.4px; }
+  .feed-need .fn-val { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--deep-rose); }
+  .feed-need .fn-sub { font-size: 0.75rem; color: var(--text-mid); }
+
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-mid); margin: 16px 0 8px; }
+
+  .filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filter-chip {
+    padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--soft-gold);
+    background: var(--cream); font-size: 0.75rem; font-weight: 500; cursor: pointer; color: var(--text-mid);
+    transition: all 0.2s;
+  }
+  .filter-chip.active { background: var(--rose); color: white; border-color: var(--rose); }
+
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-light); }
+  .empty-state span { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+  .success-toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--deep-sage); color: white;
+    padding: 10px 22px; border-radius: 30px; font-size: 0.85rem; font-weight: 500;
+    opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .success-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .info-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-mid); padding: 4px 0; border-bottom: 1px dashed rgba(160,128,128,0.2); }
+  .info-row:last-child { border-bottom: none; }
+
+  input[type=range] { width: 100%; accent-color: var(--rose); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Milk Tracker</h1>
+  <p>Twins feeding & stock management</p>
+  <div id="sync-indicator" style="display:none;position:absolute;top:12px;right:50px;font-size:0.7rem;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.7);color:var(--text-mid)">
+    <span id="sync-dot">⏳</span> <span id="sync-label">Syncing...</span>
+  </div>
+</header>
+
+<div id="stockAlert"></div>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+
+  <div class="tiles">
+    <div class="tile sage">
+      <div class="val" id="tile-fridge">0</div>
+      <div class="lbl">🧊 Fridge (ml)</div>
+    </div>
+    <div class="tile sky">
+      <div class="val" id="tile-frozen-home">0</div>
+      <div class="lbl">❄️ Frozen Home (ml)</div>
+    </div>
+    <div class="tile sky">
+      <div class="val" id="tile-frozen-hosp">0</div>
+      <div class="lbl">🏥 Frozen Hosp (ml)</div>
+    </div>
+    <div class="tile gold">
+      <div class="val" id="tile-today">0</div>
+      <div class="lbl">🍼 Pumped Today (ml)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Stock Status</h2>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>Fridge</span>
+        <span id="fridge-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sage" id="bar-fridge" style="width:0%"></div></div>
+    </div>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>Frozen — Home</span>
+        <span id="home-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sky" id="bar-home" style="width:0%"></div></div>
+    </div>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>Frozen — Hospital</span>
+        <span id="hosp-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-rose" id="bar-hosp" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="feed-need">
+    <div class="fn-title">🍼 Feeds Buffer Status — Twins Need 2 Feeds Ahead</div>
+    <div class="fn-val" id="fn-buffer">—</div>
+    <div class="fn-sub" id="fn-sub">Set feed size & frequency in Settings to see buffer</div>
+  </div>
+
+  <div class="card">
+    <h2>⚡ Quick Use from Stock</h2>
+    <label>Location</label>
+    <div class="toggle-group">
+      <button class="toggle-btn active-fridge" id="use-loc-fridge" onclick="setUseLoc('fridge')">🧊 Fridge</button>
+      <button class="toggle-btn" id="use-loc-home" onclick="setUseLoc('home')">❄️ Home</button>
+      <button class="toggle-btn" id="use-loc-hosp" onclick="setUseLoc('hosp')">🏥 Hospital</button>
+    </div>
+    <label>Amount Used (ml)</label>
+    <input type="number" id="use-amount" placeholder="e.g. 60" min="0">
+    <label>Note (optional)</label>
+    <input type="text" id="use-note" placeholder="e.g. Twin A morning feed">
+    <button class="btn-primary" onclick="useStock()">Record Use</button>
+  </div>
+
+</div>
+
+<!-- PUMP PAGE -->
+<div class="page" id="page-pump">
+  <div class="card">
+    <h2>🤱 New Pump Session</h2>
+    <label>Date & Time</label>
+    <input type="datetime-local" id="pump-time">
+    <div class="breast-row" style="margin-top:12px">
+      <div class="breast-box">
+        <label>Left Breast (ml)</label>
+        <input type="number" id="pump-left" placeholder="0" min="0" oninput="updatePumpTotal()">
+      </div>
+      <div class="breast-box">
+        <label>Right Breast (ml)</label>
+        <input type="number" id="pump-right" placeholder="0" min="0" oninput="updatePumpTotal()">
+      </div>
+    </div>
+    <div class="total-display">
+      <small>Session Total</small>
+      <span id="pump-total">0 ml</span>
+    </div>
+    <label style="margin-top:14px">Store This Milk In</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="dest-freeze-home" onclick="setDest('freeze-home')">❄️ Freeze Home</button>
+      <button class="toggle-btn" id="dest-freeze-hosp" onclick="setDest('freeze-hosp')">🏥 Freeze Hosp</button>
+      <button class="toggle-btn" id="dest-fridge" onclick="setDest('fridge')">🧊 Fridge</button>
+    </div>
+    <label>Notes (optional)</label>
+    <input type="text" id="pump-notes" placeholder="e.g. Morning session, good output">
+    <button class="btn-primary" onclick="savePump()">💾 Save Session</button>
+  </div>
+</div>
+
+<!-- STOCK PAGE -->
+<div class="page" id="page-stock">
+  <div class="card">
+    <h2>❄️ Move / Thaw Frozen Stock</h2>
+    <label>Action</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="mv-freeze" onclick="setMvAction('freeze')">🧊→❄️ Fridge to Freeze</button>
+      <button class="toggle-btn" id="mv-thaw" onclick="setMvAction('thaw')">🔥 Thaw to Use</button>
+    </div>
+    <label>From Location</label>
+    <div class="toggle-group">
+      <button class="toggle-btn active-home" id="mv-loc-home" onclick="setMvLoc('home')">🏠 Home</button>
+      <button class="toggle-btn" id="mv-loc-hosp" onclick="setMvLoc('hosp')">🏥 Hospital</button>
+    </div>
+    <label>Amount (ml)</label>
+    <input type="number" id="mv-amount" placeholder="e.g. 120" min="0">
+    <label>Notes (optional)</label>
+    <input type="text" id="mv-notes" placeholder="e.g. Oldest batch first">
+    <button class="btn-primary" onclick="saveMoveStock()">✅ Record Movement</button>
+  </div>
+
+  <div class="card">
+    <h2>🍼 Record Feeding</h2>
+    <label>Twin</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="feed-a" onclick="setFeedTwin('A')">👶 Twin A</button>
+      <button class="toggle-btn" id="feed-b" onclick="setFeedTwin('B')">👶 Twin B</button>
+      <button class="toggle-btn" id="feed-both" onclick="setFeedTwin('Both')">👶👶 Both</button>
+    </div>
+    <!-- Auto source indicator -->
+    <div id="feed-source-info" style="margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--cream);border:1.5px solid var(--soft-gold);font-size:0.82rem;color:var(--text-mid);display:none">
+      <span id="feed-source-text"></span>
+    </div>
+    <label style="margin-top:12px">Amount (ml per twin)</label>
+    <input type="number" id="feed-amount" placeholder="e.g. 60" min="0" oninput="updateFeedTotal()">
+    <div id="feed-total-row" style="font-size:0.8rem;color:var(--text-mid);margin-top:4px;text-align:right"></div>
+    <!-- Override option -->
+    <div style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.82rem;font-weight:500;color:var(--text-mid);cursor:pointer">
+        <input type="checkbox" id="feed-override-chk" onchange="toggleFeedOverride()" style="width:auto;accent-color:var(--rose)">
+        Override stock source
+      </label>
+    </div>
+    <div id="feed-override-panel" style="display:none;margin-top:8px">
+      <label>Fed From</label>
+      <div class="toggle-group">
+        <button class="toggle-btn" id="feed-from-fridge" onclick="setFeedFrom('fridge')">🧊 Fridge</button>
+        <button class="toggle-btn" id="feed-from-home" onclick="setFeedFrom('home')">❄️ Home</button>
+        <button class="toggle-btn" id="feed-from-hosp" onclick="setFeedFrom('hosp')">🏥 Hospital</button>
+      </div>
+    </div>
+    <label>Notes</label>
+    <input type="text" id="feed-notes" placeholder="e.g. 10am feed">
+    <button class="btn-primary" onclick="saveFeed()">💾 Save Feed</button>
+  </div>
+</div>
+
+<!-- LOG PAGE -->
+<div class="page" id="page-log">
+  <div class="filter-row">
+    <button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-chip" onclick="setFilter('pump', this)">Pump</button>
+    <button class="filter-chip" onclick="setFilter('feed', this)">Feed</button>
+    <button class="filter-chip" onclick="setFilter('move', this)">Stock</button>
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+
+  <div class="card" style="border-left: 4px solid var(--sage)">
+    <h2 style="color:var(--deep-sage)">👶 Twin A — Fridge Stock</h2>
+    <label>Feed Size (ml)</label>
+    <input type="number" id="set-feed-size-a" placeholder="e.g. 60" min="1" oninput="saveSettings()">
+    <label>Feeds per Day</label>
+    <input type="number" id="set-feeds-day-a" placeholder="e.g. 8" min="1" oninput="saveSettings()">
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-a">— ml</strong> from 🧊 Fridge
+    </p>
+  </div>
+
+  <div class="card" style="border-left: 4px solid var(--sky)">
+    <h2 style="color:var(--deep-sky)">👶 Twin B — Hospital Frozen</h2>
+    <label>Feed Size (ml)</label>
+    <input type="number" id="set-feed-size-b" placeholder="e.g. 60" min="1" oninput="saveSettings()">
+    <label>Feeds per Day</label>
+    <input type="number" id="set-feeds-day-b" placeholder="e.g. 8" min="1" oninput="saveSettings()">
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-b">— ml</strong> from 🏥 Hospital Frozen
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>📋 Summary Today</h2>
+    <div id="summary-today"></div>
+  </div>
+
+  <div class="card" id="sync-card">
+    <h2>☁️ Google Sheets Sync</h2>
+    <div id="sync-status" style="font-size:0.8rem;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f5f0e8;color:var(--text-mid)">
+      Not connected — paste your Apps Script URL below
+    </div>
+    <div id="sync-last" style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px;display:none"></div>
+    <label>Apps Script Web App URL</label>
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbykHhfBOaWsAZpBjAlezPdrIt-yFEKsztxBW4Fsx3RCuMa3SgVNkYt7Stg5d5ZFKn30vA/exec" oninput="saveScriptUrl()">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-secondary" style="flex:1" onclick="syncToSheet()">⬆️ Push to Sheet</button>
+      <button class="btn-secondary" style="flex:1" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
+    </div>
+    <button class="btn-primary" onclick="fullSync()" style="margin-top:8px">🔄 Full Sync (Pull + Push)</button>
+    <p style="font-size:0.72rem;color:var(--text-light);margin-top:8px;line-height:1.5">
+      Pull loads cloud data and merges with local (no duplicates). Push sends all local entries to the sheet.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>🗑️ Data</h2>
+    <button class="btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn-secondary" style="color:#c00;border-color:#e88888;margin-top:8px" onclick="clearAll()">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="showPage('home', this)">
+    <span class="icon">🏠</span>Home
+  </button>
+  <button onclick="showPage('pump', this)">
+    <span class="icon">🤱</span>Pump
+  </button>
+  <button onclick="showPage('stock', this)">
+    <span class="icon">❄️</span>Stock
+  </button>
+  <button onclick="showPage('log', this)">
+    <span class="icon">📋</span>Log
+  </button>
+  <button onclick="showPage('settings', this)">
+    <span class="icon">⚙️</span>Settings
+  </button>
+</nav>
+
+<div class="success-toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  log: [],
+  settings: {
+    twinA: { feedSize: 60, feedsPerDay: 8 },
+    twinB: { feedSize: 60, feedsPerDay: 8 }
+  }
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('milkTracker');
+    if (s) {
+      state = JSON.parse(s);
+      // Migrate old flat settings format
+      if (state.settings && !state.settings.twinA) {
+        const old = state.settings;
+        state.settings = {
+          twinA: { feedSize: old.feedSize || 60, feedsPerDay: old.feedsPerDay || 8 },
+          twinB: { feedSize: old.feedSize || 60, feedsPerDay: old.feedsPerDay || 8 }
+        };
+      }
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('milkTracker', JSON.stringify(state));
+}
+
+// ─── COMPUTED STOCK ───────────────────────────────────────────────────────────
+function getStock() {
+  let fridge = 0, frozenHome = 0, frozenHosp = 0;
+  for (const e of state.log) {
+    if (e.type === 'pump') {
+      if (e.dest === 'fridge') fridge += e.total;
+      else if (e.dest === 'freeze-home') frozenHome += e.total;
+      else if (e.dest === 'freeze-hosp') frozenHosp += e.total;
+    } else if (e.type === 'use') {
+      if (e.loc === 'fridge') fridge -= e.amount;
+      else if (e.loc === 'home') frozenHome -= e.amount;
+      else if (e.loc === 'hosp') frozenHosp -= e.amount;
+    } else if (e.type === 'move') {
+      // fridge→freeze or thaw
+      if (e.action === 'freeze') {
+        fridge -= e.amount;
+        if (e.loc === 'home') frozenHome += e.amount;
+        else frozenHosp += e.amount;
+      } else if (e.action === 'thaw') {
+        if (e.loc === 'home') frozenHome -= e.amount;
+        else frozenHosp -= e.amount;
+        fridge += e.amount;
+      }
+    } else if (e.type === 'feed') {
+      const total = e.twin === 'Both' ? e.amount * 2 : e.amount;
+      if (e.from === 'fridge') fridge -= total;
+      else if (e.from === 'home') frozenHome -= total;
+      else if (e.from === 'hosp') frozenHosp -= total;
+    }
+  }
+  return {
+    fridge: Math.max(0, Math.round(fridge)),
+    frozenHome: Math.max(0, Math.round(frozenHome)),
+    frozenHosp: Math.max(0, Math.round(frozenHosp))
+  };
+}
+
+function getTodayPumped() {
+  const today = new Date().toDateString();
+  return state.log
+    .filter(e => e.type === 'pump' && new Date(e.time).toDateString() === today)
+    .reduce((s, e) => s + e.total, 0);
+}
+
+// ─── UI UPDATES ───────────────────────────────────────────────────────────────
+function updateDashboard() {
+  const st = getStock();
+  const total = st.fridge + st.frozenHome + st.frozenHosp;
+  const maxBar = Math.max(total, 500);
+
+  document.getElementById('tile-fridge').textContent = st.fridge;
+  document.getElementById('tile-frozen-home').textContent = st.frozenHome;
+  document.getElementById('tile-frozen-hosp').textContent = st.frozenHosp;
+  document.getElementById('tile-today').textContent = getTodayPumped();
+
+  document.getElementById('fridge-ml-label').textContent = st.fridge + ' ml';
+  document.getElementById('home-ml-label').textContent = st.frozenHome + ' ml';
+  document.getElementById('hosp-ml-label').textContent = st.frozenHosp + ' ml';
+
+  document.getElementById('bar-fridge').style.width = Math.min(100, (st.fridge/maxBar)*100) + '%';
+  document.getElementById('bar-home').style.width = Math.min(100, (st.frozenHome/maxBar)*100) + '%';
+  document.getElementById('bar-hosp').style.width = Math.min(100, (st.frozenHosp/maxBar)*100) + '%';
+
+  // Buffer check — per twin
+  const tA = state.settings.twinA;
+  const tB = state.settings.twinB;
+  const bufferEl = document.getElementById('fn-buffer');
+  const subEl = document.getElementById('fn-sub');
+  const alertEl = document.getElementById('stockAlert');
+
+  if (tA.feedSize && tB.feedSize) {
+    // Twin A uses fridge, Twin B uses hospital frozen
+    const feedsA = st.fridge / tA.feedSize;   // rounds for Twin A
+    const feedsB = st.frozenHosp / tB.feedSize; // rounds for Twin B
+    const minFeeds = Math.min(feedsA, feedsB);
+    bufferEl.textContent = minFeeds.toFixed(1) + ' feeds';
+    subEl.textContent = `A: ${st.fridge}ml (${feedsA.toFixed(1)} feeds) · B: ${st.frozenHosp}ml (${feedsB.toFixed(1)} feeds) · Target: 2+ each`;
+    const dangerTwin = feedsA < 1 ? 'Twin A (Fridge)' : feedsB < 1 ? 'Twin B (Hospital)' : null;
+    const warnTwin = feedsA < 2 ? 'Twin A' : feedsB < 2 ? 'Twin B' : null;
+    if (dangerTwin) {
+      alertEl.className = 'danger';
+      alertEl.textContent = `🚨 Critical! ${dangerTwin} has less than 1 feed in stock!`;
+    } else if (warnTwin) {
+      alertEl.className = 'warn';
+      alertEl.textContent = `⚠️ Low buffer for ${warnTwin} — under 2 feeds. Pump more soon!`;
+    } else {
+      alertEl.className = 'ok';
+      alertEl.textContent = `✅ Good stock — A: ${feedsA.toFixed(1)} feeds · B: ${feedsB.toFixed(1)} feeds`;
+    }
+  } else {
+    const available = st.fridge + st.frozenHome + st.frozenHosp;
+    bufferEl.textContent = available + ' ml';
+    subEl.textContent = 'Set feed sizes in Settings to see feed count';
+    alertEl.style.display = 'none';
+  }
+}
+
+// ─── FORM STATE ───────────────────────────────────────────────────────────────
+let pumpDest = null;
+let useLoc = 'fridge';
+let mvAction = null;
+let mvLoc = 'home';
+let feedTwin = null;
+let feedFrom = null;
+let activeFilter = 'all';
+
+function setDest(d) {
+  pumpDest = d;
+  ['freeze-home','freeze-hosp','fridge'].forEach(x => {
+    const btn = document.getElementById('dest-'+x);
+    btn.className = 'toggle-btn';
+  });
+  const cls = d === 'fridge' ? 'active-fridge' : 'active-freeze';
+  document.getElementById('dest-'+d).classList.add(cls);
+}
+
+function setUseLoc(l) {
+  useLoc = l;
+  ['fridge','home','hosp'].forEach(x => {
+    document.getElementById('use-loc-'+x).className = 'toggle-btn';
+  });
+  const cls = l === 'fridge' ? 'active-fridge' : l === 'home' ? 'active-home' : 'active-hospital';
+  document.getElementById('use-loc-'+l).classList.add(cls);
+}
+
+function setMvAction(a) {
+  mvAction = a;
+  ['freeze','thaw'].forEach(x => document.getElementById('mv-'+x).className = 'toggle-btn');
+  document.getElementById('mv-'+a).classList.add(a === 'freeze' ? 'active-freeze' : 'active-fridge');
+}
+
+function setMvLoc(l) {
+  mvLoc = l;
+  ['home','hosp'].forEach(x => document.getElementById('mv-loc-'+x).className = 'toggle-btn');
+  document.getElementById('mv-loc-'+l).classList.add(l === 'home' ? 'active-home' : 'active-hospital');
+}
+
+// Twin A = fridge, Twin B = hospital frozen (auto)
+function autoSourceForTwin(twin) {
+  if (twin === 'A') return 'fridge';
+  if (twin === 'B') return 'hosp';
+  return null; // Both — handled separately
+}
+
+function setFeedTwin(t) {
+  feedTwin = t;
+  ['A','B','Both'].forEach(x => document.getElementById('feed-'+x.toLowerCase()).className = 'toggle-btn');
+  document.getElementById('feed-'+t.toLowerCase()).classList.add('active-fridge');
+  // Show auto-source info
+  const infoBox = document.getElementById('feed-source-info');
+  const infoText = document.getElementById('feed-source-text');
+  const isOverride = document.getElementById('feed-override-chk').checked;
+  if (!isOverride) {
+    if (t === 'A') {
+      infoBox.style.display = 'block';
+      infoBox.style.background = '#eefff4';
+      infoBox.style.borderColor = 'var(--sage)';
+      infoText.innerHTML = '🧊 <strong>Twin A</strong> — auto-deducting from <strong>Fridge</strong>';
+    } else if (t === 'B') {
+      infoBox.style.display = 'block';
+      infoBox.style.background = '#ddeeff';
+      infoBox.style.borderColor = 'var(--sky)';
+      infoText.innerHTML = '🏥 <strong>Twin B</strong> — auto-deducting from <strong>Hospital Frozen</strong>';
+    } else {
+      infoBox.style.display = 'block';
+      infoBox.style.background = 'var(--cream)';
+      infoBox.style.borderColor = 'var(--soft-gold)';
+      infoText.innerHTML = '👶👶 <strong>Both</strong> — Twin A from 🧊 Fridge · Twin B from 🏥 Hospital Frozen';
+    }
+  }
+  updateFeedTotal();
+}
+
+function toggleFeedOverride() {
+  const on = document.getElementById('feed-override-chk').checked;
+  document.getElementById('feed-override-panel').style.display = on ? 'block' : 'none';
+  const infoBox = document.getElementById('feed-source-info');
+  if (on) {
+    infoBox.style.display = 'none';
+    feedFrom = null;
+  } else {
+    feedFrom = null;
+    if (feedTwin) setFeedTwin(feedTwin); // re-show auto source
+  }
+}
+
+function setFeedFrom(f) {
+  feedFrom = f;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('feed-from-'+x).className = 'toggle-btn');
+  const cls = f === 'fridge' ? 'active-fridge' : f === 'home' ? 'active-home' : 'active-hospital';
+  document.getElementById('feed-from-'+f).classList.add(cls);
+}
+
+function updatePumpTotal() {
+  const l = parseFloat(document.getElementById('pump-left').value) || 0;
+  const r = parseFloat(document.getElementById('pump-right').value) || 0;
+  document.getElementById('pump-total').textContent = (l+r) + ' ml';
+}
+
+function updateFeedTotal() {
+  const amt = parseFloat(document.getElementById('feed-amount').value) || 0;
+  const row = document.getElementById('feed-total-row');
+  const tA = state.settings.twinA;
+  const tB = state.settings.twinB;
+  if (feedTwin === 'Both' && amt > 0) {
+    row.textContent = `Total: ${amt*2}ml — Twin A: ${amt}ml from Fridge · Twin B: ${amt}ml from Hospital`;
+  } else if (feedTwin === 'A' && amt > 0) {
+    const hint = tA.feedSize ? ` (usual: ${tA.feedSize}ml)` : '';
+    row.textContent = `${amt}ml for Twin A from 🧊 Fridge${hint}`;
+  } else if (feedTwin === 'B' && amt > 0) {
+    const hint = tB.feedSize ? ` (usual: ${tB.feedSize}ml)` : '';
+    row.textContent = `${amt}ml for Twin B from 🏥 Hospital Frozen${hint}`;
+  } else row.textContent = '';
+}
+
+// ─── SAVE ACTIONS ─────────────────────────────────────────────────────────────
+function savePump() {
+  const left = parseFloat(document.getElementById('pump-left').value) || 0;
+  const right = parseFloat(document.getElementById('pump-right').value) || 0;
+  if (!left && !right) { toast('Enter at least one breast amount'); return; }
+  if (!pumpDest) { toast('Choose where to store this milk'); return; }
+  const total = left + right;
+  const time = document.getElementById('pump-time').value || new Date().toISOString();
+  state.log.push({
+    id: Date.now(),
+    type: 'pump',
+    time,
+    left, right, total,
+    dest: pumpDest,
+    notes: document.getElementById('pump-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('pump-left').value = '';
+  document.getElementById('pump-right').value = '';
+  document.getElementById('pump-notes').value = '';
+  document.getElementById('pump-total').textContent = '0 ml';
+  pumpDest = null;
+  ['freeze-home','freeze-hosp','fridge'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
+  toast('✅ Pump session saved — ' + total + 'ml');
+  showPage('home', document.querySelector('nav button'));
+}
+
+function useStock() {
+  const amount = parseFloat(document.getElementById('use-amount').value);
+  if (!amount) { toast('Enter amount used'); return; }
+  const st = getStock();
+  const avail = useLoc === 'fridge' ? st.fridge : useLoc === 'home' ? st.frozenHome : st.frozenHosp;
+  if (amount > avail) { toast('Not enough stock in that location'); return; }
+  state.log.push({
+    id: Date.now(), type: 'use', time: new Date().toISOString(),
+    loc: useLoc, amount,
+    notes: document.getElementById('use-note').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('use-amount').value = '';
+  document.getElementById('use-note').value = '';
+  toast('✅ ' + amount + 'ml recorded');
+}
+
+function saveMoveStock() {
+  const amount = parseFloat(document.getElementById('mv-amount').value);
+  if (!amount) { toast('Enter amount'); return; }
+  if (!mvAction) { toast('Choose action (freeze/thaw)'); return; }
+  const st = getStock();
+  if (mvAction === 'freeze' && amount > st.fridge) { toast('Not enough in fridge'); return; }
+  if (mvAction === 'thaw') {
+    const avail = mvLoc === 'home' ? st.frozenHome : st.frozenHosp;
+    if (amount > avail) { toast('Not enough frozen stock'); return; }
+  }
+  state.log.push({
+    id: Date.now(), type: 'move', time: new Date().toISOString(),
+    action: mvAction, loc: mvLoc, amount,
+    notes: document.getElementById('mv-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('mv-amount').value = '';
+  document.getElementById('mv-notes').value = '';
+  toast('✅ Stock movement saved');
+}
+
+function saveFeed() {
+  const amount = parseFloat(document.getElementById('feed-amount').value);
+  if (!amount) { toast('Enter feed amount'); return; }
+  if (!feedTwin) { toast('Select which twin(s)'); return; }
+  const isOverride = document.getElementById('feed-override-chk').checked;
+  const st = getStock();
+
+  if (isOverride) {
+    // Manual location
+    if (!feedFrom) { toast('Select where feed came from'); return; }
+    const totalUsed = feedTwin === 'Both' ? amount * 2 : amount;
+    const avail = feedFrom === 'fridge' ? st.fridge : feedFrom === 'home' ? st.frozenHome : st.frozenHosp;
+    if (totalUsed > avail) { toast('Not enough stock in that location'); return; }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from: feedFrom, notes: document.getElementById('feed-notes').value });
+  } else if (feedTwin === 'Both') {
+    // Twin A from fridge, Twin B from hosp — check each separately
+    if (amount > st.fridge) { toast(`Not enough fridge stock for Twin A (need ${amount}ml, have ${st.fridge}ml)`); return; }
+    if (amount > st.frozenHosp) { toast(`Not enough hospital frozen for Twin B (need ${amount}ml, have ${st.frozenHosp}ml)`); return; }
+    // Log as two separate entries for clarity
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: 'A', amount, from: 'fridge', notes: document.getElementById('feed-notes').value });
+    state.log.push({ id: Date.now()+1, type: 'feed', time: new Date().toISOString(), twin: 'B', amount, from: 'hosp', notes: document.getElementById('feed-notes').value });
+  } else {
+    // Auto source: A=fridge, B=hosp
+    const from = autoSourceForTwin(feedTwin);
+    const avail = from === 'fridge' ? st.fridge : st.frozenHosp;
+    if (amount > avail) {
+      const loc = from === 'fridge' ? 'Fridge' : 'Hospital Frozen';
+      toast(`Not enough in ${loc} for Twin ${feedTwin} (need ${amount}ml, have ${avail}ml)`);
+      return;
+    }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from, notes: document.getElementById('feed-notes').value });
+  }
+
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  document.getElementById('feed-amount').value = '';
+  document.getElementById('feed-notes').value = '';
+  document.getElementById('feed-total-row').textContent = '';
+  const totalMl = feedTwin === 'Both' ? amount * 2 : amount;
+  toast('🍼 Feed recorded — ' + totalMl + 'ml');
+}
+
+// ─── LOG RENDER ───────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderLog();
+}
+
+function renderLog() {
+  const list = document.getElementById('log-list');
+  let entries = [...state.log].reverse();
+  if (activeFilter !== 'all') {
+    const map = { pump: 'pump', feed: 'feed', move: ['move','use'] };
+    const types = Array.isArray(map[activeFilter]) ? map[activeFilter] : [map[activeFilter]];
+    entries = entries.filter(e => types.includes(e.type));
+  }
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state"><span>📝</span>No entries yet</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const d = new Date(e.time);
+    const dt = d.toLocaleDateString('en-GB', {day:'numeric',month:'short'}) + ' ' +
+               d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+    if (e.type === 'pump') {
+      const destLabel = e.dest === 'fridge' ? '🧊 Fridge' : e.dest === 'freeze-home' ? '❄️ Home Freeze' : '🏥 Hosp Freeze';
+      const cls = e.dest === 'fridge' ? 'badge-fridge' : 'badge-freeze';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🤱 ${e.total}ml</div>
+          <div class="log-meta">${dt} · L: ${e.left}ml R: ${e.right}ml${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge ${cls}">${destLabel}</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'feed') {
+      const total = e.twin === 'Both' ? e.amount*2 : e.amount;
+      const fromLabel = e.from === 'fridge' ? '🧊' : e.from === 'home' ? '❄️' : '🏥';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🍼 ${total}ml</div>
+          <div class="log-meta">${dt} · Twin ${e.twin} · ${fromLabel} · ${e.amount}ml/twin${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-feed">Feed</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'use') {
+      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">📤 ${e.amount}ml</div>
+          <div class="log-meta">${dt} · From ${locLabel}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-feed">Used</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'move') {
+      const actionLabel = e.action === 'freeze' ? 'Fridge→Freeze' : 'Thaw';
+      const locLabel = e.loc === 'home' ? 'Home' : 'Hospital';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🔄 ${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${actionLabel} · ${locLabel}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-thaw">${actionLabel}</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    }
+    return '';
+  }).join('');
+}
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  state.log = state.log.filter(e => e.id !== id);
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  toast('Entry deleted');
+}
+
+// ─── SETTINGS & SUMMARY ───────────────────────────────────────────────────────
+function saveSettings() {
+  const fsA = parseFloat(document.getElementById('set-feed-size-a').value);
+  const fdA = parseFloat(document.getElementById('set-feeds-day-a').value);
+  const fsB = parseFloat(document.getElementById('set-feed-size-b').value);
+  const fdB = parseFloat(document.getElementById('set-feeds-day-b').value);
+  if (fsA) state.settings.twinA.feedSize = fsA;
+  if (fdA) state.settings.twinA.feedsPerDay = fdA;
+  if (fsB) state.settings.twinB.feedSize = fsB;
+  if (fdB) state.settings.twinB.feedsPerDay = fdB;
+  saveState(); updateDashboard();
+  const bufA = (fsA || state.settings.twinA.feedSize) * 2;
+  const bufB = (fsB || state.settings.twinB.feedSize) * 2;
+  document.getElementById('set-buffer-a').textContent = bufA + 'ml';
+  document.getElementById('set-buffer-b').textContent = bufB + 'ml';
+}
+
+function loadSettings() {
+  document.getElementById('set-feed-size-a').value = state.settings.twinA.feedSize || '';
+  document.getElementById('set-feeds-day-a').value = state.settings.twinA.feedsPerDay || '';
+  document.getElementById('set-feed-size-b').value = state.settings.twinB.feedSize || '';
+  document.getElementById('set-feeds-day-b').value = state.settings.twinB.feedsPerDay || '';
+  document.getElementById('set-buffer-a').textContent = (state.settings.twinA.feedSize * 2 || '—') + (state.settings.twinA.feedSize ? 'ml' : '');
+  document.getElementById('set-buffer-b').textContent = (state.settings.twinB.feedSize * 2 || '—') + (state.settings.twinB.feedSize ? 'ml' : '');
+}
+
+function updateSummary() {
+  const today = new Date().toDateString();
+  const todayEntries = state.log.filter(e => new Date(e.time).toDateString() === today);
+  const pumped = todayEntries.filter(e => e.type==='pump').reduce((s,e)=>s+e.total,0);
+  const feedA = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='A'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
+  const feedB = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='B'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
+  const sessions = todayEntries.filter(e=>e.type==='pump').length;
+  const el = document.getElementById('summary-today');
+  el.innerHTML = `
+    <div class="info-row"><span>Pump sessions</span><span>${sessions}</span></div>
+    <div class="info-row"><span>Total pumped</span><span>${pumped} ml</span></div>
+    <div class="info-row"><span>Twin A fed</span><span>${feedA} ml</span></div>
+    <div class="info-row"><span>Twin B fed</span><span>${feedB} ml</span></div>
+    <div class="info-row"><span>Total fed</span><span>${feedA+feedB} ml</span></div>
+  `;
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['ID','Date','Type','Left(ml)','Right(ml)','Total(ml)','Twin','Amount(ml)','Location/Dest','Notes']];
+  for (const e of state.log) {
+    const d = new Date(e.time).toLocaleString();
+    if (e.type==='pump') rows.push([e.id,d,'pump',e.left,e.right,e.total,'','',e.dest,e.notes||'']);
+    else if (e.type==='feed') rows.push([e.id,d,'feed','','','',e.twin,e.amount,e.from,e.notes||'']);
+    else if (e.type==='use') rows.push([e.id,d,'use','','','','',e.amount,e.loc,e.notes||'']);
+    else if (e.type==='move') rows.push([e.id,d,'move-'+e.action,'','','','',e.amount,e.loc,e.notes||'']);
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'milk-tracker-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+}
+
+function clearAll() {
+  if (!confirm('Clear ALL data? This cannot be undone.')) return;
+  state.log = [];
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  toast('All data cleared');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (id === 'settings') { loadSettings(); updateSummary(); }
+  if (id === 'log') renderLog();
+}
+
+// ─── SCRIPT URL ──────────────────────────────────────────────────────────────
+const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
+const BAKED_URL = 'https://script.google.com/macros/s/AKfycbykHhfBOaWsAZpBjAlezPdrIt-yFEKsztxBW4Fsx3RCuMa3SgVNkYt7Stg5d5ZFKn30vA/exec';
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
+
+function saveScriptUrl() {
+  SCRIPT_URL = document.getElementById('script-url').value.trim();
+  localStorage.setItem(SCRIPT_URL_KEY, SCRIPT_URL);
+  setSyncStatus(SCRIPT_URL ? 'ready' : 'none');
+}
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  const ind = document.getElementById('sync-indicator');
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (state === 'none') {
+    el.style.background = '#f5f0e8'; el.style.color = 'var(--text-mid)';
+    el.textContent = 'Not connected — paste your Apps Script URL below';
+    ind.style.display = 'none';
+  } else if (state === 'ready') {
+    el.style.background = '#eefff4'; el.style.color = 'var(--deep-sage)';
+    el.textContent = '✅ URL saved — ready to sync';
+    ind.style.display = 'none';
+  } else if (state === 'syncing') {
+    el.style.background = '#fff3d4'; el.style.color = '#8a6000';
+    el.textContent = msg || '⏳ Syncing...';
+    ind.style.display = 'block'; dot.textContent = '⏳'; lbl.textContent = 'Syncing...';
+  } else if (state === 'ok') {
+    el.style.background = '#eefff4'; el.style.color = 'var(--deep-sage)';
+    el.textContent = msg || '✅ Sync complete';
+    ind.style.display = 'block'; dot.textContent = '✅'; lbl.textContent = 'Synced';
+    setTimeout(() => { ind.style.display = 'none'; }, 4000);
+  } else if (state === 'error') {
+    el.style.background = '#fde8e8'; el.style.color = '#8a0000';
+    el.textContent = msg || '❌ Sync failed';
+    ind.style.display = 'block'; dot.textContent = '❌'; lbl.textContent = 'Sync error';
+  }
+  // Update last sync time
+  if (state === 'ok') {
+    const last = document.getElementById('sync-last');
+    last.style.display = 'block';
+    last.textContent = 'Last sync: ' + new Date().toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
+async function syncToSheet() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Pushing to sheet...');
+  try {
+    const payload = {
+      action: 'push',
+      log: state.log,
+      settings: state.settings
+    };
+    const resp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
+      toast('☁️ Pushed to Google Sheet');
+    } else {
+      setSyncStatus('error', '❌ Push failed: ' + (result.message || 'unknown error'));
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Push failed — check URL & network');
+    toast('❌ Push failed');
+  }
+}
+
+async function syncFromSheet() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Pulling from sheet...');
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=pull');
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      // Merge: combine cloud + local, deduplicate by id
+      const cloudLog = result.log || [];
+      const cloudSettings = result.settings || null;
+      const merged = mergeLog(state.log, cloudLog);
+      state.log = merged;
+      if (cloudSettings && cloudSettings.twinA) state.settings = cloudSettings;
+      saveState();
+      updateDashboard(); renderLog(); updateSummary();
+      const newCount = merged.length - state.log.length;
+      setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries total');
+      toast('☁️ Pulled from Google Sheet — ' + merged.length + ' entries');
+    } else {
+      setSyncStatus('error', '❌ Pull failed: ' + (result.message || 'unknown error'));
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Pull failed — check URL & network');
+    toast('❌ Pull failed');
+  }
+}
+
+async function fullSync() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Full sync in progress...');
+  try {
+    // Step 1: Pull from sheet
+    const pullResp = await fetch(SCRIPT_URL + '?action=pull');
+    const pullResult = await pullResp.json();
+    if (pullResult.status !== 'ok') throw new Error(pullResult.message || 'pull failed');
+
+    const cloudLog = pullResult.log || [];
+    const cloudSettings = pullResult.settings || null;
+    const merged = mergeLog(state.log, cloudLog);
+    state.log = merged;
+    if (cloudSettings && cloudSettings.twinA) state.settings = cloudSettings;
+    saveState();
+
+    // Step 2: Push merged back to sheet
+    const pushResp = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'push', log: state.log, settings: state.settings })
+    });
+    const pushResult = await pushResp.json();
+    if (pushResult.status !== 'ok') throw new Error(pushResult.message || 'push failed');
+
+    updateDashboard(); renderLog(); updateSummary();
+    setSyncStatus('ok', '✅ Full sync complete — ' + merged.length + ' entries');
+    toast('✅ Full sync done — ' + merged.length + ' entries');
+  } catch(e) {
+    setSyncStatus('error', '❌ Sync failed: ' + e.message);
+    toast('❌ Sync failed');
+  }
+}
+
+function mergeLog(local, cloud) {
+  const map = new Map();
+  // Cloud first, then local overrides (local is freshest)
+  [...cloud, ...local].forEach(e => map.set(String(e.id), e));
+  return Array.from(map.values()).sort((a,b) => new Date(a.time) - new Date(b.time));
+}
+
+// Auto-sync on load if URL exists
+async function autoSyncOnLoad() {
+  if (!SCRIPT_URL) return;
+  setSyncStatus('syncing', '⏳ Loading cloud data...');
+  try {
+    const resp = await fetch(SCRIPT_URL + '?action=pull');
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      const merged = mergeLog(state.log, result.log || []);
+      state.log = merged;
+      if (result.settings && result.settings.twinA) state.settings = result.settings;
+      saveState();
+      updateDashboard(); renderLog(); updateSummary(); loadSettings();
+      setSyncStatus('ok', '✅ Cloud data loaded — ' + merged.length + ' entries');
+    } else {
+      setSyncStatus('error', '❌ Auto-sync failed');
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Auto-sync failed — offline?');
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadState();
+
+// Restore script URL input
+document.getElementById('script-url').value = SCRIPT_URL || BAKED_URL;
+if (!localStorage.getItem(SCRIPT_URL_KEY)) { SCRIPT_URL = BAKED_URL; localStorage.setItem(SCRIPT_URL_KEY, BAKED_URL); }
+
+// Set default pump time to now
+const nowTime = new Date();
+nowTime.setSeconds(0,0);
+document.getElementById('pump-time').value = nowTime.toISOString().slice(0,16);
+
+updateDashboard();
+renderLog();
+
+// Auto pull from sheet on load
+autoSyncOnLoad();
+</script>
+</body>
+</html>
