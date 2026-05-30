@@ -368,8 +368,9 @@
 <div class="page" id="page-pump">
   <div class="card">
     <h2>🤱 New Pump Session</h2>
-    <label>Date & Time</label>
+    <label>Date & Time <span style="font-size:0.7rem;font-weight:400;color:var(--text-light)">(SA time)</span></label>
     <input type="datetime-local" id="pump-time">
+    <p style="font-size:0.72rem;color:var(--text-light);margin-top:3px">Tap to edit — defaults to current SA time</p>
     <div class="breast-row" style="margin-top:12px">
       <div class="breast-box">
         <label>Left Breast (ml)</label>
@@ -604,6 +605,46 @@
 <div class="success-toast" id="toast"></div>
 
 <script>
+// ─── SA TIME HELPERS (Africa/Johannesburg = UTC+2, no DST) ───────────────────
+function nowSA() {
+  // Returns a Date object representing current SA time
+  const now = new Date();
+  // SA is UTC+2 always (no daylight saving)
+  const saOffset = 2 * 60; // minutes
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + saOffset * 60000);
+}
+
+function toSADatetimeLocal(date) {
+  // Format a Date as YYYY-MM-DDTHH:MM for datetime-local input (in SA time)
+  const d = new Date(date.getTime());
+  const saOffset = 2 * 60;
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const sa = new Date(utc + saOffset * 60000);
+  const pad = n => String(n).padStart(2, '0');
+  return `${sa.getFullYear()}-${pad(sa.getMonth()+1)}-${pad(sa.getDate())}T${pad(sa.getHours())}:${pad(sa.getMinutes())}`;
+}
+
+function datetimeLocalToISO(dtStr) {
+  // Convert datetime-local string (treated as SA time) to UTC ISO string
+  // dtStr = "YYYY-MM-DDTHH:MM"
+  if (!dtStr) return new Date().toISOString();
+  // Treat as SA (UTC+2): subtract 2h to get UTC
+  const saMs = new Date(dtStr).getTime();
+  const utcMs = saMs - (2 * 60 * 60000);
+  return new Date(utcMs).toISOString();
+}
+
+function formatSATime(isoString) {
+  // Format an ISO string for display in SA time
+  const d = new Date(isoString);
+  const saOffset = 2 * 60;
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  const sa = new Date(utc + saOffset * 60000);
+  return sa.toLocaleDateString('en-ZA', {day:'numeric', month:'short'}) + ' ' +
+         sa.toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
+}
+
 // ─── STATE ───────────────────────────────────────────────────────────────────
 let state = {
   log: [],
@@ -699,10 +740,17 @@ function getStock() {
 }
 
 function getTodayPumped() {
-  const today = new Date().toDateString();
+  const todaySA = nowSA().toDateString();
   return state.log
-    .filter(e => e.type === 'pump' && new Date(e.time).toDateString() === today)
+    .filter(e => e.type === 'pump' && nowSAFromISO(e.time).toDateString() === todaySA)
     .reduce((s, e) => s + e.total, 0);
+}
+
+function nowSAFromISO(isoStr) {
+  const d = new Date(isoStr);
+  const saOffset = 2 * 60;
+  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
+  return new Date(utc + saOffset * 60000);
 }
 
 // ─── UI UPDATES ───────────────────────────────────────────────────────────────
@@ -995,7 +1043,7 @@ function savePump() {
   if (!left && !right) { toast('Enter at least one breast amount'); return; }
   if (!pumpDest) { toast('Choose where to store this milk'); return; }
   const total = left + right;
-  const time = document.getElementById('pump-time').value || new Date().toISOString();
+  const time = datetimeLocalToISO(document.getElementById('pump-time').value);
   state.log.push({
     id: Date.now(),
     type: 'pump',
@@ -1009,6 +1057,7 @@ function savePump() {
   document.getElementById('pump-right').value = '';
   document.getElementById('pump-notes').value = '';
   document.getElementById('pump-total').textContent = '0 ml';
+  document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
   pumpDest = null;
   ['hospFridge','hospFrozen','homeFrozen'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
   toast('✅ Pump session saved — ' + total + 'ml');
@@ -1117,9 +1166,7 @@ function renderLog() {
     return;
   }
   list.innerHTML = entries.map(e => {
-    const d = new Date(e.time);
-    const dt = d.toLocaleDateString('en-GB', {day:'numeric',month:'short'}) + ' ' +
-               d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
+    const dt = formatSATime(e.time);
     if (e.type === 'pump') {
       const destMap = {
         hospFridge: '🏥🧊 Hosp Fridge', hospFrozen: '🏥❄️ Hosp Frozen', homeFrozen: '🏠❄️ Home Frozen',
@@ -1245,8 +1292,8 @@ function loadSettings() {
 }
 
 function updateSummary() {
-  const today = new Date().toDateString();
-  const todayEntries = state.log.filter(e => new Date(e.time).toDateString() === today);
+  const todaySA = nowSA().toDateString();
+  const todayEntries = state.log.filter(e => nowSAFromISO(e.time).toDateString() === todaySA);
   const pumped = todayEntries.filter(e => e.type==='pump').reduce((s,e)=>s+e.total,0);
   const feedA = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='A'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
   const feedB = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='B'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
@@ -1475,9 +1522,7 @@ document.getElementById('script-url').value = SCRIPT_URL || BAKED_URL;
 if (!localStorage.getItem(SCRIPT_URL_KEY)) { SCRIPT_URL = BAKED_URL; localStorage.setItem(SCRIPT_URL_KEY, BAKED_URL); }
 
 // Set default pump time to now
-const nowTime = new Date();
-nowTime.setSeconds(0,0);
-document.getElementById('pump-time').value = nowTime.toISOString().slice(0,16);
+document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
 
 updateDashboard();
 renderLog();
