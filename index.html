@@ -227,6 +227,10 @@
   .badge-fridge { background: #eefff4; color: var(--deep-sage); }
   .badge-feed { background: #fce8e8; color: var(--deep-rose); }
   .badge-thaw { background: #fff3d4; color: #8a6000; }
+  .badge-discard { background: #fde8e8; color: #8a0000; border: 1px solid #e88888; }
+  .badge-adjust-up { background: #eefff4; color: var(--deep-sage); }
+  .badge-adjust-down { background: #fff3d4; color: #8a6000; }
+  .badge-stockcount { background: #ede8f8; color: #5a3d9a; }
   .del-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 1rem; padding: 2px 6px; }
 
   /* Stock section */
@@ -413,6 +417,73 @@
     <button class="btn-primary" onclick="saveMoveStock()">✅ Record Movement</button>
   </div>
 
+  <div class="card" style="border-left:4px solid #b08ac8">
+    <h2 style="color:#5a3d9a">📦 Stock Take — Set Actual Count</h2>
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
+      Enter the actual ml you can see right now. The app records the difference as an adjustment.
+    </p>
+    <label>Location</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="sc-loc-fridge" onclick="setScLoc('fridge')">🧊 Fridge</button>
+      <button class="toggle-btn" id="sc-loc-home" onclick="setScLoc('home')">❄️ Home</button>
+      <button class="toggle-btn" id="sc-loc-hosp" onclick="setScLoc('hosp')">🏥 Hospital</button>
+    </div>
+    <div id="sc-current" style="font-size:0.8rem;color:var(--text-mid);margin-top:8px;padding:6px 10px;background:var(--cream);border-radius:8px;display:none">
+      Calculated stock: <strong id="sc-current-val">—</strong>
+    </div>
+    <label>Actual Count (ml)</label>
+    <input type="number" id="sc-actual" placeholder="e.g. 350" min="0" oninput="updateScDiff()">
+    <div id="sc-diff" style="font-size:0.82rem;margin-top:6px;padding:7px 10px;border-radius:8px;display:none"></div>
+    <label>Notes (optional)</label>
+    <input type="text" id="sc-notes" placeholder="e.g. Weekly stock take">
+    <button class="btn-primary" style="background:linear-gradient(135deg,#9a7acc,#5a3d9a);box-shadow:0 4px 14px rgba(90,61,154,0.3)" onclick="saveStockCount()">📦 Save Stock Count</button>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--gold)">
+    <h2 style="color:#7a5500">⚖️ Manual Adjustment</h2>
+    <label>Location</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="adj-loc-fridge" onclick="setAdjLoc('fridge')">🧊 Fridge</button>
+      <button class="toggle-btn" id="adj-loc-home" onclick="setAdjLoc('home')">❄️ Home</button>
+      <button class="toggle-btn" id="adj-loc-hosp" onclick="setAdjLoc('hosp')">🏥 Hospital</button>
+    </div>
+    <label>Direction</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="adj-dir-add" onclick="setAdjDir('add')">➕ Add</button>
+      <button class="toggle-btn" id="adj-dir-sub" onclick="setAdjDir('sub')">➖ Subtract</button>
+    </div>
+    <label>Amount (ml)</label>
+    <input type="number" id="adj-amount" placeholder="e.g. 60" min="0">
+    <label>Reason</label>
+    <input type="text" id="adj-reason" placeholder="e.g. Found extra bag, miscounted">
+    <button class="btn-primary" style="background:linear-gradient(135deg,var(--gold),#9a7010);box-shadow:0 4px 14px rgba(154,112,16,0.3)" onclick="saveAdjustment()">⚖️ Save Adjustment</button>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--rose)">
+    <h2 style="color:var(--deep-rose)">🗑️ Discard Stock</h2>
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
+      Log milk that must be thrown away. This creates a permanent discard record.
+    </p>
+    <label>Location</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="disc-loc-fridge" onclick="setDiscLoc('fridge')">🧊 Fridge</button>
+      <button class="toggle-btn" id="disc-loc-home" onclick="setDiscLoc('home')">❄️ Home</button>
+      <button class="toggle-btn" id="disc-loc-hosp" onclick="setDiscLoc('hosp')">🏥 Hospital</button>
+    </div>
+    <label>Amount to Discard (ml)</label>
+    <input type="number" id="disc-amount" placeholder="e.g. 120" min="0">
+    <label>Reason</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="disc-r-expired" onclick="setDiscReason('Expired')">⏰ Expired</button>
+      <button class="toggle-btn" id="disc-r-contaminated" onclick="setDiscReason('Contaminated')">⚠️ Contaminated</button>
+      <button class="toggle-btn" id="disc-r-freezer" onclick="setDiscReason('Freezer burn')">🥶 Freezer burn</button>
+      <button class="toggle-btn" id="disc-r-other" onclick="setDiscReason('Other')">📝 Other</button>
+    </div>
+    <label>Additional Notes (optional)</label>
+    <input type="text" id="disc-notes" placeholder="e.g. Left out too long">
+    <button class="btn-primary" style="background:linear-gradient(135deg,var(--blush),var(--deep-rose));box-shadow:0 4px 14px rgba(196,80,103,0.35)" onclick="saveDiscard()">🗑️ Record Discard</button>
+  </div>
+
   <div class="card">
     <h2>🍼 Record Feeding</h2>
     <label>Twin</label>
@@ -456,6 +527,7 @@
     <button class="filter-chip" onclick="setFilter('pump', this)">Pump</button>
     <button class="filter-chip" onclick="setFilter('feed', this)">Feed</button>
     <button class="filter-chip" onclick="setFilter('move', this)">Stock</button>
+    <button class="filter-chip" onclick="setFilter('discard', this)">Discards</button>
   </div>
   <div id="log-list"></div>
 </div>
@@ -594,6 +666,21 @@ function getStock() {
       if (e.from === 'fridge') fridge -= total;
       else if (e.from === 'home') frozenHome -= total;
       else if (e.from === 'hosp') frozenHosp -= total;
+    } else if (e.type === 'discard') {
+      if (e.loc === 'fridge') fridge -= e.amount;
+      else if (e.loc === 'home') frozenHome -= e.amount;
+      else if (e.loc === 'hosp') frozenHosp -= e.amount;
+    } else if (e.type === 'adjust') {
+      const delta = e.dir === 'add' ? e.amount : -e.amount;
+      if (e.loc === 'fridge') fridge += delta;
+      else if (e.loc === 'home') frozenHome += delta;
+      else if (e.loc === 'hosp') frozenHosp += delta;
+    } else if (e.type === 'stockcount') {
+      // Sets absolute value — apply as delta from calculated-at-that-point
+      // We store the delta directly at save time
+      if (e.loc === 'fridge') fridge += e.delta;
+      else if (e.loc === 'home') frozenHome += e.delta;
+      else if (e.loc === 'hosp') frozenHosp += e.delta;
     }
   }
   return {
@@ -781,6 +868,127 @@ function updateFeedTotal() {
   } else row.textContent = '';
 }
 
+// ─── STOCK MANAGEMENT FORM STATE ─────────────────────────────────────────────
+let scLoc = null, adjLoc = null, adjDir = null, discLoc = null, discReason = null;
+
+function setScLoc(l) {
+  scLoc = l;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('sc-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+  const st = getStock();
+  const cur = l==='fridge' ? st.fridge : l==='home' ? st.frozenHome : st.frozenHosp;
+  document.getElementById('sc-current').style.display = 'block';
+  document.getElementById('sc-current-val').textContent = cur + 'ml';
+  updateScDiff();
+}
+
+function updateScDiff() {
+  const actual = parseFloat(document.getElementById('sc-actual').value);
+  const diffEl = document.getElementById('sc-diff');
+  if (!scLoc || isNaN(actual)) { diffEl.style.display = 'none'; return; }
+  const st = getStock();
+  const cur = scLoc==='fridge' ? st.fridge : scLoc==='home' ? st.frozenHome : st.frozenHosp;
+  const delta = actual - cur;
+  diffEl.style.display = 'block';
+  if (delta === 0) {
+    diffEl.style.background = '#eefff4'; diffEl.style.color = 'var(--deep-sage)';
+    diffEl.textContent = '✅ Matches calculated stock — no adjustment needed';
+  } else if (delta > 0) {
+    diffEl.style.background = '#eefff4'; diffEl.style.color = 'var(--deep-sage)';
+    diffEl.textContent = `➕ ${delta}ml more than calculated — will add to stock`;
+  } else {
+    diffEl.style.background = '#fff3d4'; diffEl.style.color = '#8a6000';
+    diffEl.textContent = `➖ ${Math.abs(delta)}ml less than calculated — will reduce stock`;
+  }
+}
+
+function saveStockCount() {
+  if (!scLoc) { toast('Select a location'); return; }
+  const actual = parseFloat(document.getElementById('sc-actual').value);
+  if (isNaN(actual) || actual < 0) { toast('Enter actual stock amount'); return; }
+  const st = getStock();
+  const cur = scLoc==='fridge' ? st.fridge : scLoc==='home' ? st.frozenHome : st.frozenHosp;
+  const delta = actual - cur;
+  state.log.push({
+    id: Date.now(), type: 'stockcount', time: new Date().toISOString(),
+    loc: scLoc, actual, delta,
+    notes: document.getElementById('sc-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('sc-actual').value = '';
+  document.getElementById('sc-diff').style.display = 'none';
+  document.getElementById('sc-current').style.display = 'none';
+  scLoc = null;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  toast(`📦 Stock count saved — ${actual}ml set for ${scLoc || 'location'}`);
+}
+
+function setAdjLoc(l) {
+  adjLoc = l;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  document.getElementById('adj-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+}
+function setAdjDir(d) {
+  adjDir = d;
+  ['add','sub'].forEach(x => document.getElementById('adj-dir-'+x).className = 'toggle-btn');
+  document.getElementById('adj-dir-'+d).classList.add(d==='add'?'active-home':'active-fridge');
+}
+
+function saveAdjustment() {
+  if (!adjLoc) { toast('Select a location'); return; }
+  if (!adjDir) { toast('Select add or subtract'); return; }
+  const amount = parseFloat(document.getElementById('adj-amount').value);
+  if (!amount) { toast('Enter amount'); return; }
+  const reason = document.getElementById('adj-reason').value;
+  if (!reason) { toast('Enter a reason for the adjustment'); return; }
+  state.log.push({
+    id: Date.now(), type: 'adjust', time: new Date().toISOString(),
+    loc: adjLoc, dir: adjDir, amount, reason
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('adj-amount').value = '';
+  document.getElementById('adj-reason').value = '';
+  adjLoc = null; adjDir = null;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  ['add','sub'].forEach(x => document.getElementById('adj-dir-'+x).className = 'toggle-btn');
+  toast('⚖️ Adjustment saved');
+}
+
+function setDiscLoc(l) {
+  discLoc = l;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('disc-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+}
+function setDiscReason(r) {
+  discReason = r;
+  ['expired','contaminated','freezer','other'].forEach(x => document.getElementById('disc-r-'+x).className = 'toggle-btn');
+  const key = r.toLowerCase().replace(' ','');
+  if (document.getElementById('disc-r-'+key)) document.getElementById('disc-r-'+key).classList.add('active-fridge');
+}
+
+function saveDiscard() {
+  if (!discLoc) { toast('Select a location'); return; }
+  if (!discReason) { toast('Select a reason'); return; }
+  const amount = parseFloat(document.getElementById('disc-amount').value);
+  if (!amount) { toast('Enter amount to discard'); return; }
+  const st = getStock();
+  const avail = discLoc==='fridge' ? st.fridge : discLoc==='home' ? st.frozenHome : st.frozenHosp;
+  if (amount > avail) { toast(`Only ${avail}ml available in that location`); return; }
+  if (!confirm(`Discard ${amount}ml from ${discLoc === 'fridge' ? 'Fridge' : discLoc === 'home' ? 'Home Frozen' : 'Hospital Frozen'}? Reason: ${discReason}. This cannot be undone.`)) return;
+  state.log.push({
+    id: Date.now(), type: 'discard', time: new Date().toISOString(),
+    loc: discLoc, amount, reason: discReason,
+    notes: document.getElementById('disc-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('disc-amount').value = '';
+  document.getElementById('disc-notes').value = '';
+  discLoc = null; discReason = null;
+  ['fridge','home','hosp'].forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  ['expired','contaminated','freezer','other'].forEach(x => document.getElementById('disc-r-'+x).className = 'toggle-btn');
+  toast('🗑️ Discard recorded — ' + amount + 'ml');
+}
+
 // ─── SAVE ACTIONS ─────────────────────────────────────────────────────────────
 function savePump() {
   const left = parseFloat(document.getElementById('pump-left').value) || 0;
@@ -899,7 +1107,7 @@ function renderLog() {
   const list = document.getElementById('log-list');
   let entries = [...state.log].reverse();
   if (activeFilter !== 'all') {
-    const map = { pump: 'pump', feed: 'feed', move: ['move','use'] };
+    const map = { pump: 'pump', feed: 'feed', move: ['move','use'], discard: ['discard','adjust','stockcount'] };
     const types = Array.isArray(map[activeFilter]) ? map[activeFilter] : [map[activeFilter]];
     entries = entries.filter(e => types.includes(e.type));
   }
@@ -952,6 +1160,39 @@ function renderLog() {
           <div class="log-meta">${dt} · ${actionLabel} · ${locLabel}${e.notes ? ' · '+e.notes : ''}</div>
         </div>
         <div><span class="log-badge badge-thaw">${actionLabel}</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'discard') {
+      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#c00">🗑️ -${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${locLabel} · ${e.reason}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-discard">Discarded</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'adjust') {
+      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const sign = e.dir === 'add' ? '+' : '-';
+      const cls = e.dir === 'add' ? 'badge-adjust-up' : 'badge-adjust-down';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:${e.dir==='add'?'var(--deep-sage)':'#8a6000'}">${sign}${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${locLabel}${e.reason ? ' · '+e.reason : ''}</div>
+        </div>
+        <div><span class="log-badge ${cls}">Adjust</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'stockcount') {
+      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const sign = e.delta >= 0 ? '+' : '';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#5a3d9a">📦 ${e.actual}ml</div>
+          <div class="log-meta">${dt} · ${locLabel} · Set to ${e.actual}ml (${sign}${e.delta}ml adj)${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-stockcount">Stock Take</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     }
