@@ -566,7 +566,7 @@
     </div>
     <div id="sync-last" style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px;display:none"></div>
     <label>Apps Script Web App URL</label>
-    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbykHhfBOaWsAZpBjAlezPdrIt-yFEKsztxBW4Fsx3RCuMa3SgVNkYt7Stg5d5ZFKn30vA/exec" oninput="saveScriptUrl()">
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbxMxPHj3fcXpG0EjuoJ1bJAv9a-PnJ9h4qHyswmikvLODF0Pq3mjc3kDBmEpQ6LWFvxaw/exec" oninput="saveScriptUrl()">
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn-secondary" style="flex:1" onclick="syncToSheet()">⬆️ Push to Sheet</button>
       <button class="btn-secondary" style="flex:1" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
@@ -1354,7 +1354,7 @@ function showPage(id, btn) {
 
 // ─── SCRIPT URL ──────────────────────────────────────────────────────────────
 const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
-const BAKED_URL = 'https://script.google.com/macros/s/AKfycbykHhfBOaWsAZpBjAlezPdrIt-yFEKsztxBW4Fsx3RCuMa3SgVNkYt7Stg5d5ZFKn30vA/exec';
+const BAKED_URL = 'https://script.google.com/macros/s/AKfycbxMxPHj3fcXpG0EjuoJ1bJAv9a-PnJ9h4qHyswmikvLODF0Pq3mjc3kDBmEpQ6LWFvxaw/exec';
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
 
 function saveScriptUrl() {
@@ -1399,20 +1399,26 @@ function setSyncStatus(state, msg) {
 }
 
 // ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
+// Google Apps Script rejects POST fetches due to redirect handling.
+// We encode all data as a GET parameter instead — GAS handles it fine.
+async function gasRequest(action, data) {
+  const payload = encodeURIComponent(JSON.stringify(data || {}));
+  const url = SCRIPT_URL + '?action=' + action + '&data=' + payload;
+  const resp = await fetch(url, { redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const text = await resp.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    throw new Error('Bad response: ' + text.slice(0, 100));
+  }
+}
+
 async function syncToSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pushing to sheet...');
   try {
-    const payload = {
-      action: 'push',
-      log: state.log,
-      settings: state.settings
-    };
-    const resp = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-    const result = await resp.json();
+    const result = await gasRequest('push', { log: state.log, settings: state.settings });
     if (result.status === 'ok') {
       setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
       toast('☁️ Pushed to Google Sheet');
@@ -1420,7 +1426,7 @@ async function syncToSheet() {
       setSyncStatus('error', '❌ Push failed: ' + (result.message || 'unknown error'));
     }
   } catch(e) {
-    setSyncStatus('error', '❌ Push failed — check URL & network');
+    setSyncStatus('error', '❌ Push failed — ' + e.message);
     toast('❌ Push failed');
   }
 }
@@ -1469,11 +1475,7 @@ async function fullSync() {
     saveState();
 
     // Step 2: Push merged back to sheet
-    const pushResp = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({ action: 'push', log: state.log, settings: state.settings })
-    });
-    const pushResult = await pushResp.json();
+    const pushResult = await gasRequest('push', { log: state.log, settings: state.settings });
     if (pushResult.status !== 'ok') throw new Error(pushResult.message || 'push failed');
 
     updateDashboard(); renderLog(); updateSummary();
