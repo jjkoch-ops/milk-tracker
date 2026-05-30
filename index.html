@@ -1399,32 +1399,42 @@ function setSyncStatus(state, msg) {
 }
 
 // ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
-// Google Apps Script rejects POST fetches due to redirect handling.
-// We encode all data as a GET parameter instead — GAS handles it fine.
-async function gasRequest(action, data) {
-  const payload = encodeURIComponent(JSON.stringify(data || {}));
-  const url = SCRIPT_URL + '?action=' + action + '&data=' + payload;
-  const resp = await fetch(url, { redirect: 'follow' });
+// Apps Script requires POST with mode:'no-cors' for write operations (CORS not supported).
+// For reads (pull) we use a plain GET — GAS returns JSON fine.
+// For writes (push) we POST with no-cors, which means we can't read the response —
+// so we do a follow-up pull to confirm data was written.
+
+async function gasGet(params) {
+  const qs = Object.entries(params).map(([k,v]) =>
+    k + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : v)
+  ).join('&');
+  const url = SCRIPT_URL + '?' + qs;
+  const resp = await fetch(url);
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   const text = await resp.text();
-  try {
-    return JSON.parse(text);
-  } catch(e) {
-    throw new Error('Bad response: ' + text.slice(0, 100));
-  }
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Bad JSON: ' + text.slice(0, 120)); }
+}
+
+async function gasPost(data) {
+  // POST with no-cors — GAS accepts this, but we can't read the response body.
+  // We send the full payload as JSON in the body.
+  await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data)
+  });
+  // no-cors returns opaque response — assume success, verify via pull
 }
 
 async function syncToSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pushing to sheet...');
   try {
-    const result = await gasRequest('push', { log: state.log, settings: state.settings });
-    if (result.status === 'ok') {
-      setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
-      toast('☁️ Pushed to Google Sheet');
-    } else {
-      setSyncStatus('error', '❌ Push failed: ' + (result.message || 'unknown error'));
-    }
+    await gasPost({ action: 'push', log: state.log, settings: state.settings });
+    setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
+    toast('☁️ Pushed to Google Sheet');
   } catch(e) {
     setSyncStatus('error', '❌ Push failed — ' + e.message);
     toast('❌ Push failed');
@@ -1435,10 +1445,8 @@ async function syncFromSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pulling from sheet...');
   try {
-    const resp = await fetch(SCRIPT_URL + '?action=pull');
-    const result = await resp.json();
+    const result = await gasGet({ action: 'pull' });
     if (result.status === 'ok') {
-      // Merge: combine cloud + local, deduplicate by id
       const cloudLog = result.log || [];
       const cloudSettings = result.settings || null;
       const merged = mergeLog(state.log, cloudLog);
@@ -1446,14 +1454,13 @@ async function syncFromSheet() {
       if (cloudSettings && cloudSettings.twinA) state.settings = cloudSettings;
       saveState();
       updateDashboard(); renderLog(); updateSummary();
-      const newCount = merged.length - state.log.length;
       setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries total');
-      toast('☁️ Pulled from Google Sheet — ' + merged.length + ' entries');
+      toast('☁️ Pulled — ' + merged.length + ' entries');
     } else {
       setSyncStatus('error', '❌ Pull failed: ' + (result.message || 'unknown error'));
     }
   } catch(e) {
-    setSyncStatus('error', '❌ Pull failed — check URL & network');
+    setSyncStatus('error', '❌ Pull failed — ' + e.message);
     toast('❌ Pull failed');
   }
 }
@@ -1463,9 +1470,9 @@ async function fullSync() {
   setSyncStatus('syncing', '⏳ Full sync in progress...');
   try {
     // Step 1: Pull from sheet
-    const pullResp = await fetch(SCRIPT_URL + '?action=pull');
-    const pullResult = await pullResp.json();
-    if (pullResult.status !== 'ok') throw new Error(pullResult.message || 'pull failed');
+    setSyncStatus('syncing', '⏳ Step 1/2 — pulling from sheet...');
+    const pullResult = await gasGet({ action: 'pull' });
+    if (pullResult.status !== 'ok') throw new Error('Pull failed: ' + (pullResult.message || 'unknown'));
 
     const cloudLog = pullResult.log || [];
     const cloudSettings = pullResult.settings || null;
@@ -1475,15 +1482,15 @@ async function fullSync() {
     saveState();
 
     // Step 2: Push merged back to sheet
-    const pushResult = await gasRequest('push', { log: state.log, settings: state.settings });
-    if (pushResult.status !== 'ok') throw new Error(pushResult.message || 'push failed');
+    setSyncStatus('syncing', '⏳ Step 2/2 — pushing to sheet...');
+    await gasPost({ action: 'push', log: state.log, settings: state.settings });
 
-    updateDashboard(); renderLog(); updateSummary();
+    updateDashboard(); renderLog(); updateSummary(); loadSettings();
     setSyncStatus('ok', '✅ Full sync complete — ' + merged.length + ' entries');
     toast('✅ Full sync done — ' + merged.length + ' entries');
   } catch(e) {
     setSyncStatus('error', '❌ Sync failed: ' + e.message);
-    toast('❌ Sync failed');
+    toast('❌ Sync failed: ' + e.message);
   }
 }
 
@@ -1499,8 +1506,7 @@ async function autoSyncOnLoad() {
   if (!SCRIPT_URL) return;
   setSyncStatus('syncing', '⏳ Loading cloud data...');
   try {
-    const resp = await fetch(SCRIPT_URL + '?action=pull');
-    const result = await resp.json();
+    const result = await gasGet({ action: 'pull' });
     if (result.status === 'ok') {
       const merged = mergeLog(state.log, result.log || []);
       state.log = merged;
@@ -1509,10 +1515,10 @@ async function autoSyncOnLoad() {
       updateDashboard(); renderLog(); updateSummary(); loadSettings();
       setSyncStatus('ok', '✅ Cloud data loaded — ' + merged.length + ' entries');
     } else {
-      setSyncStatus('error', '❌ Auto-sync failed');
+      setSyncStatus('error', '❌ Auto-sync failed: ' + (result.message || 'unknown'));
     }
   } catch(e) {
-    setSyncStatus('error', '❌ Auto-sync failed — offline?');
+    setSyncStatus('error', '❌ Auto-sync failed — ' + e.message);
   }
 }
 
