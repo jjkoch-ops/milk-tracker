@@ -566,7 +566,7 @@
     </div>
     <div id="sync-last" style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px;display:none"></div>
     <label>Apps Script Web App URL</label>
-    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbxMxPHj3fcXpG0EjuoJ1bJAv9a-PnJ9h4qHyswmikvLODF0Pq3mjc3kDBmEpQ6LWFvxaw/exec" oninput="saveScriptUrl()">
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec" oninput="saveScriptUrl()">
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn-secondary" style="flex:1" onclick="syncToSheet()">⬆️ Push to Sheet</button>
       <button class="btn-secondary" style="flex:1" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
@@ -1354,7 +1354,7 @@ function showPage(id, btn) {
 
 // ─── SCRIPT URL ──────────────────────────────────────────────────────────────
 const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
-const BAKED_URL = 'https://script.google.com/macros/s/AKfycbxMxPHj3fcXpG0EjuoJ1bJAv9a-PnJ9h4qHyswmikvLODF0Pq3mjc3kDBmEpQ6LWFvxaw/exec';
+const BAKED_URL = 'https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec';
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
 
 function saveScriptUrl() {
@@ -1399,51 +1399,25 @@ function setSyncStatus(state, msg) {
 }
 
 // ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
-// Apps Script blocks fetch() due to CORS. We use JSONP (dynamic <script> tags)
-// which bypasses CORS entirely. The Apps Script wraps responses in a callback.
-// All data (including push payloads) travels as a URL-encoded query parameter.
+// Apps Script v6 sets CORS headers so plain fetch() works from any origin.
 
-let _jsonpCounter = 0;
-
-function jsonpRequest(params, timeoutMs) {
-  return new Promise((resolve, reject) => {
-    const cbName = '__gasCallback_' + (++_jsonpCounter);
-    const timeout = setTimeout(() => {
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      reject(new Error('Request timed out after ' + (timeoutMs||15000) + 'ms'));
-    }, timeoutMs || 15000);
-
-    window[cbName] = function(data) {
-      clearTimeout(timeout);
-      delete window[cbName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-      resolve(data);
-    };
-
-    const qs = Object.entries(Object.assign({ callback: cbName }, params))
-      .map(([k,v]) => k + '=' + encodeURIComponent(typeof v === 'object' ? JSON.stringify(v) : String(v)))
-      .join('&');
-
-    const script = document.createElement('script');
-    script.onerror = function() {
-      clearTimeout(timeout);
-      delete window[cbName];
-      reject(new Error('Script load failed — check URL'));
-    };
-    script.src = SCRIPT_URL + '?' + qs;
-    document.head.appendChild(script);
-  });
+async function gasRequest(action, data) {
+  let url = SCRIPT_URL + '?action=' + action;
+  if (data) {
+    url += '&data=' + encodeURIComponent(JSON.stringify(data));
+  }
+  const resp = await fetch(url, { redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Bad response: ' + text.slice(0,120)); }
 }
 
 async function syncToSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pushing to sheet...');
   try {
-    const result = await jsonpRequest({
-      action: 'push',
-      data: JSON.stringify({ log: state.log, settings: state.settings })
-    }, 20000);
+    const result = await gasRequest('push', { log: state.log, settings: state.settings });
     if (result.status === 'ok') {
       setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
       toast('☁️ Pushed to Google Sheet');
@@ -1460,7 +1434,7 @@ async function syncFromSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pulling from sheet...');
   try {
-    const result = await jsonpRequest({ action: 'pull' });
+    const result = await gasRequest('pull');
     if (result.status === 'ok') {
       const cloudLog = result.log || [];
       const cloudSettings = result.settings || null;
@@ -1484,7 +1458,7 @@ async function fullSync() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Step 1/2 — pulling from sheet...');
   try {
-    const pullResult = await jsonpRequest({ action: 'pull' });
+    const pullResult = await gasRequest('pull');
     if (pullResult.status !== 'ok') throw new Error('Pull failed: ' + (pullResult.message || 'unknown'));
 
     const merged = mergeLog(state.log, pullResult.log || []);
@@ -1493,10 +1467,7 @@ async function fullSync() {
     saveState();
 
     setSyncStatus('syncing', '⏳ Step 2/2 — pushing to sheet...');
-    const pushResult = await jsonpRequest({
-      action: 'push',
-      data: JSON.stringify({ log: state.log, settings: state.settings })
-    }, 20000);
+    const pushResult = await gasRequest('push', { log: state.log, settings: state.settings });
     if (pushResult.status !== 'ok') throw new Error('Push failed: ' + (pushResult.message || 'unknown'));
 
     updateDashboard(); renderLog(); updateSummary(); loadSettings();
@@ -1520,7 +1491,7 @@ async function autoSyncOnLoad() {
   if (!SCRIPT_URL) return;
   setSyncStatus('syncing', '⏳ Loading cloud data...');
   try {
-    const result = await jsonpRequest({ action: 'pull' }, 12000);
+    const result = await gasRequest('pull');
     if (result.status === 'ok') {
       const merged = mergeLog(state.log, result.log || []);
       state.log = merged;
