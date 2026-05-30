@@ -299,16 +299,16 @@
 
   <div class="tiles">
     <div class="tile sage">
-      <div class="val" id="tile-fridge">0</div>
-      <div class="lbl">🧊 Fridge (ml)</div>
+      <div class="val" id="tile-hospFridge">0</div>
+      <div class="lbl">🏥🧊 Hosp Fridge (ml)</div>
     </div>
     <div class="tile sky">
-      <div class="val" id="tile-frozen-home">0</div>
-      <div class="lbl">❄️ Frozen Home (ml)</div>
+      <div class="val" id="tile-hospFrozen">0</div>
+      <div class="lbl">🏥❄️ Hosp Frozen (ml)</div>
     </div>
     <div class="tile sky">
-      <div class="val" id="tile-frozen-hosp">0</div>
-      <div class="lbl">🏥 Frozen Hosp (ml)</div>
+      <div class="val" id="tile-homeFrozen">0</div>
+      <div class="lbl">🏠❄️ Home Frozen (ml)</div>
     </div>
     <div class="tile gold">
       <div class="val" id="tile-today">0</div>
@@ -320,24 +320,24 @@
     <h2>📊 Stock Status</h2>
     <div class="stock-section">
       <div class="stock-label">
-        <span>Fridge</span>
-        <span id="fridge-ml-label">0 ml</span>
+        <span>🏥🧊 Hospital Fridge <small style="font-weight:400;opacity:0.7">(Twin A · fresh)</small></span>
+        <span id="hospFridge-ml-label">0 ml</span>
       </div>
-      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sage" id="bar-fridge" style="width:0%"></div></div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sage" id="bar-hospFridge" style="width:0%"></div></div>
     </div>
     <div class="stock-section">
       <div class="stock-label">
-        <span>Frozen — Home</span>
-        <span id="home-ml-label">0 ml</span>
+        <span>🏥❄️ Hospital Frozen <small style="font-weight:400;opacity:0.7">(Twin B · thawed)</small></span>
+        <span id="hospFrozen-ml-label">0 ml</span>
       </div>
-      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sky" id="bar-home" style="width:0%"></div></div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sky" id="bar-hospFrozen" style="width:0%"></div></div>
     </div>
     <div class="stock-section">
       <div class="stock-label">
-        <span>Frozen — Hospital</span>
-        <span id="hosp-ml-label">0 ml</span>
+        <span>🏠❄️ Home Frozen <small style="font-weight:400;opacity:0.7">(reserve)</small></span>
+        <span id="homeFrozen-ml-label">0 ml</span>
       </div>
-      <div class="stock-bar-bg"><div class="stock-bar-fill fill-rose" id="bar-hosp" style="width:0%"></div></div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-rose" id="bar-homeFrozen" style="width:0%"></div></div>
     </div>
   </div>
 
@@ -350,10 +350,10 @@
   <div class="card">
     <h2>⚡ Quick Use from Stock</h2>
     <label>Location</label>
-    <div class="toggle-group">
-      <button class="toggle-btn active-fridge" id="use-loc-fridge" onclick="setUseLoc('fridge')">🧊 Fridge</button>
-      <button class="toggle-btn" id="use-loc-home" onclick="setUseLoc('home')">❄️ Home</button>
-      <button class="toggle-btn" id="use-loc-hosp" onclick="setUseLoc('hosp')">🏥 Hospital</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn active-fridge" id="use-loc-hospFridge" onclick="setUseLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="use-loc-hospFrozen" onclick="setUseLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="use-loc-homeFrozen" onclick="setUseLoc('homeFrozen')">🏠❄️ Home Frozen</button>
     </div>
     <label>Amount Used (ml)</label>
     <input type="number" id="use-amount" placeholder="e.g. 60" min="0">
@@ -385,10 +385,10 @@
       <span id="pump-total">0 ml</span>
     </div>
     <label style="margin-top:14px">Store This Milk In</label>
-    <div class="toggle-group">
-      <button class="toggle-btn" id="dest-freeze-home" onclick="setDest('freeze-home')">❄️ Freeze Home</button>
-      <button class="toggle-btn" id="dest-freeze-hosp" onclick="setDest('freeze-hosp')">🏥 Freeze Hosp</button>
-      <button class="toggle-btn" id="dest-fridge" onclick="setDest('fridge')">🧊 Fridge</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="dest-hospFridge" onclick="setDest('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="dest-hospFrozen" onclick="setDest('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="dest-homeFrozen" onclick="setDest('homeFrozen')">🏠❄️ Home Frozen</button>
     </div>
     <label>Notes (optional)</label>
     <input type="text" id="pump-notes" placeholder="e.g. Morning session, good output">
@@ -399,16 +399,12 @@
 <!-- STOCK PAGE -->
 <div class="page" id="page-stock">
   <div class="card">
-    <h2>❄️ Move / Thaw Frozen Stock</h2>
+    <h2>🔄 Move / Transfer Stock</h2>
     <label>Action</label>
-    <div class="toggle-group">
-      <button class="toggle-btn" id="mv-freeze" onclick="setMvAction('freeze')">🧊→❄️ Fridge to Freeze</button>
-      <button class="toggle-btn" id="mv-thaw" onclick="setMvAction('thaw')">🔥 Thaw to Use</button>
-    </div>
-    <label>From Location</label>
-    <div class="toggle-group">
-      <button class="toggle-btn active-home" id="mv-loc-home" onclick="setMvLoc('home')">🏠 Home</button>
-      <button class="toggle-btn" id="mv-loc-hosp" onclick="setMvLoc('hosp')">🏥 Hospital</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="mv-home-to-hospfrozen" onclick="setMvAction('home-to-hospfrozen')">🏠→🏥❄️ Home→Hosp Frozen</button>
+      <button class="toggle-btn" id="mv-hospfrozen-to-hospfridge" onclick="setMvAction('hospfrozen-to-hospfridge')">🏥❄️→🏥🧊 Thaw for Hosp Fridge</button>
+      <button class="toggle-btn" id="mv-hospfridge-to-hospfrozen" onclick="setMvAction('hospfridge-to-hospfrozen')">🏥🧊→🏥❄️ Fridge→Freeze Hosp</button>
     </div>
     <label>Amount (ml)</label>
     <input type="number" id="mv-amount" placeholder="e.g. 120" min="0">
@@ -423,10 +419,10 @@
       Enter the actual ml you can see right now. The app records the difference as an adjustment.
     </p>
     <label>Location</label>
-    <div class="toggle-group">
-      <button class="toggle-btn" id="sc-loc-fridge" onclick="setScLoc('fridge')">🧊 Fridge</button>
-      <button class="toggle-btn" id="sc-loc-home" onclick="setScLoc('home')">❄️ Home</button>
-      <button class="toggle-btn" id="sc-loc-hosp" onclick="setScLoc('hosp')">🏥 Hospital</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="sc-loc-hospFridge" onclick="setScLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="sc-loc-hospFrozen" onclick="setScLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="sc-loc-homeFrozen" onclick="setScLoc('homeFrozen')">🏠❄️ Home Frozen</button>
     </div>
     <div id="sc-current" style="font-size:0.8rem;color:var(--text-mid);margin-top:8px;padding:6px 10px;background:var(--cream);border-radius:8px;display:none">
       Calculated stock: <strong id="sc-current-val">—</strong>
@@ -442,10 +438,10 @@
   <div class="card" style="border-left:4px solid var(--gold)">
     <h2 style="color:#7a5500">⚖️ Manual Adjustment</h2>
     <label>Location</label>
-    <div class="toggle-group">
-      <button class="toggle-btn" id="adj-loc-fridge" onclick="setAdjLoc('fridge')">🧊 Fridge</button>
-      <button class="toggle-btn" id="adj-loc-home" onclick="setAdjLoc('home')">❄️ Home</button>
-      <button class="toggle-btn" id="adj-loc-hosp" onclick="setAdjLoc('hosp')">🏥 Hospital</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="adj-loc-hospFridge" onclick="setAdjLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="adj-loc-hospFrozen" onclick="setAdjLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="adj-loc-homeFrozen" onclick="setAdjLoc('homeFrozen')">🏠❄️ Home Frozen</button>
     </div>
     <label>Direction</label>
     <div class="toggle-group">
@@ -465,10 +461,10 @@
       Log milk that must be thrown away. This creates a permanent discard record.
     </p>
     <label>Location</label>
-    <div class="toggle-group">
-      <button class="toggle-btn" id="disc-loc-fridge" onclick="setDiscLoc('fridge')">🧊 Fridge</button>
-      <button class="toggle-btn" id="disc-loc-home" onclick="setDiscLoc('home')">❄️ Home</button>
-      <button class="toggle-btn" id="disc-loc-hosp" onclick="setDiscLoc('hosp')">🏥 Hospital</button>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="disc-loc-hospFridge" onclick="setDiscLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="disc-loc-hospFrozen" onclick="setDiscLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="disc-loc-homeFrozen" onclick="setDiscLoc('homeFrozen')">🏠❄️ Home Frozen</button>
     </div>
     <label>Amount to Discard (ml)</label>
     <input type="number" id="disc-amount" placeholder="e.g. 120" min="0">
@@ -508,10 +504,10 @@
     </div>
     <div id="feed-override-panel" style="display:none;margin-top:8px">
       <label>Fed From</label>
-      <div class="toggle-group">
-        <button class="toggle-btn" id="feed-from-fridge" onclick="setFeedFrom('fridge')">🧊 Fridge</button>
-        <button class="toggle-btn" id="feed-from-home" onclick="setFeedFrom('home')">❄️ Home</button>
-        <button class="toggle-btn" id="feed-from-hosp" onclick="setFeedFrom('hosp')">🏥 Hospital</button>
+      <div class="toggle-group" style="flex-wrap:wrap">
+        <button class="toggle-btn" id="feed-from-hospFridge" onclick="setFeedFrom('hospFridge')">🏥🧊 Hosp Fridge</button>
+        <button class="toggle-btn" id="feed-from-hospFrozen" onclick="setFeedFrom('hospFrozen')">🏥❄️ Hosp Frozen</button>
+        <button class="toggle-btn" id="feed-from-homeFrozen" onclick="setFeedFrom('homeFrozen')">🏠❄️ Home Frozen</button>
       </div>
     </div>
     <label>Notes</label>
@@ -536,24 +532,24 @@
 <div class="page" id="page-settings">
 
   <div class="card" style="border-left: 4px solid var(--sage)">
-    <h2 style="color:var(--deep-sage)">👶 Twin A — Fridge Stock</h2>
+    <h2 style="color:var(--deep-sage)">👶 Twin A — 🏥🧊 Hosp Fridge (fresh)</h2>
     <label>Feed Size (ml)</label>
     <input type="number" id="set-feed-size-a" placeholder="e.g. 60" min="1" oninput="saveSettings()">
     <label>Feeds per Day</label>
     <input type="number" id="set-feeds-day-a" placeholder="e.g. 8" min="1" oninput="saveSettings()">
     <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
-      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-a">— ml</strong> from 🧊 Fridge
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-a">— ml</strong> from 🏥🧊 Hosp Fridge
     </p>
   </div>
 
   <div class="card" style="border-left: 4px solid var(--sky)">
-    <h2 style="color:var(--deep-sky)">👶 Twin B — Hospital Frozen</h2>
+    <h2 style="color:var(--deep-sky)">👶 Twin B — 🏥❄️ Hosp Frozen (thawed)</h2>
     <label>Feed Size (ml)</label>
     <input type="number" id="set-feed-size-b" placeholder="e.g. 60" min="1" oninput="saveSettings()">
     <label>Feeds per Day</label>
     <input type="number" id="set-feeds-day-b" placeholder="e.g. 8" min="1" oninput="saveSettings()">
     <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
-      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-b">— ml</strong> from 🏥 Hospital Frozen
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-b">— ml</strong> from 🏥❄️ Hosp Frozen
     </p>
   </div>
 
@@ -638,55 +634,67 @@ function saveState() {
   localStorage.setItem('milkTracker', JSON.stringify(state));
 }
 
+
+function locLabel(loc) {
+  return loc === 'hospFridge' ? '🏥🧊 Hosp Fridge'
+       : loc === 'hospFrozen' ? '🏥❄️ Hosp Frozen'
+       : loc === 'homeFrozen' ? '🏠❄️ Home Frozen'
+       : loc;
+}
+function locActive(loc) {
+  return loc === 'hospFridge' ? 'active-fridge'
+       : loc === 'hospFrozen' ? 'active-freeze'
+       : 'active-home';
+}
+function locIds() { return ['hospFridge','hospFrozen','homeFrozen']; }
+
 // ─── COMPUTED STOCK ───────────────────────────────────────────────────────────
+// Locations: hospFridge | hospFrozen | homeFrozen
 function getStock() {
-  let fridge = 0, frozenHome = 0, frozenHosp = 0;
+  let hospFridge = 0, hospFrozen = 0, homeFrozen = 0;
+
+  function applyLoc(loc, delta) {
+    if (loc === 'hospFridge') hospFridge += delta;
+    else if (loc === 'hospFrozen') hospFrozen += delta;
+    else if (loc === 'homeFrozen') homeFrozen += delta;
+    // legacy migration
+    else if (loc === 'fridge') hospFridge += delta;
+    else if (loc === 'hosp') hospFrozen += delta;
+    else if (loc === 'home') homeFrozen += delta;
+  }
+
   for (const e of state.log) {
     if (e.type === 'pump') {
-      if (e.dest === 'fridge') fridge += e.total;
-      else if (e.dest === 'freeze-home') frozenHome += e.total;
-      else if (e.dest === 'freeze-hosp') frozenHosp += e.total;
+      const dest = e.dest;
+      if (dest === 'hospFridge' || dest === 'fridge') hospFridge += e.total;
+      else if (dest === 'hospFrozen' || dest === 'freeze-hosp') hospFrozen += e.total;
+      else if (dest === 'homeFrozen' || dest === 'freeze-home') homeFrozen += e.total;
     } else if (e.type === 'use') {
-      if (e.loc === 'fridge') fridge -= e.amount;
-      else if (e.loc === 'home') frozenHome -= e.amount;
-      else if (e.loc === 'hosp') frozenHosp -= e.amount;
+      applyLoc(e.loc, -e.amount);
     } else if (e.type === 'move') {
-      // fridge→freeze or thaw
-      if (e.action === 'freeze') {
-        fridge -= e.amount;
-        if (e.loc === 'home') frozenHome += e.amount;
-        else frozenHosp += e.amount;
-      } else if (e.action === 'thaw') {
-        if (e.loc === 'home') frozenHome -= e.amount;
-        else frozenHosp -= e.amount;
-        fridge += e.amount;
-      }
+      const a = e.action;
+      const amt = e.amount;
+      if (a === 'home-to-hospfrozen') { homeFrozen -= amt; hospFrozen += amt; }
+      else if (a === 'hospfrozen-to-hospfridge') { hospFrozen -= amt; hospFridge += amt; }
+      else if (a === 'hospfridge-to-hospfrozen') { hospFridge -= amt; hospFrozen += amt; }
+      // legacy
+      else if (a === 'freeze') { hospFridge -= amt; if (e.loc==='home') homeFrozen += amt; else hospFrozen += amt; }
+      else if (a === 'thaw') { if (e.loc==='home') homeFrozen -= amt; else hospFrozen -= amt; hospFridge += amt; }
     } else if (e.type === 'feed') {
       const total = e.twin === 'Both' ? e.amount * 2 : e.amount;
-      if (e.from === 'fridge') fridge -= total;
-      else if (e.from === 'home') frozenHome -= total;
-      else if (e.from === 'hosp') frozenHosp -= total;
+      applyLoc(e.from, -total);
     } else if (e.type === 'discard') {
-      if (e.loc === 'fridge') fridge -= e.amount;
-      else if (e.loc === 'home') frozenHome -= e.amount;
-      else if (e.loc === 'hosp') frozenHosp -= e.amount;
+      applyLoc(e.loc, -e.amount);
     } else if (e.type === 'adjust') {
-      const delta = e.dir === 'add' ? e.amount : -e.amount;
-      if (e.loc === 'fridge') fridge += delta;
-      else if (e.loc === 'home') frozenHome += delta;
-      else if (e.loc === 'hosp') frozenHosp += delta;
+      applyLoc(e.loc, e.dir === 'add' ? e.amount : -e.amount);
     } else if (e.type === 'stockcount') {
-      // Sets absolute value — apply as delta from calculated-at-that-point
-      // We store the delta directly at save time
-      if (e.loc === 'fridge') fridge += e.delta;
-      else if (e.loc === 'home') frozenHome += e.delta;
-      else if (e.loc === 'hosp') frozenHosp += e.delta;
+      applyLoc(e.loc, e.delta);
     }
   }
   return {
-    fridge: Math.max(0, Math.round(fridge)),
-    frozenHome: Math.max(0, Math.round(frozenHome)),
-    frozenHosp: Math.max(0, Math.round(frozenHosp))
+    hospFridge: Math.max(0, Math.round(hospFridge)),
+    hospFrozen: Math.max(0, Math.round(hospFrozen)),
+    homeFrozen: Math.max(0, Math.round(homeFrozen))
   };
 }
 
@@ -700,23 +708,23 @@ function getTodayPumped() {
 // ─── UI UPDATES ───────────────────────────────────────────────────────────────
 function updateDashboard() {
   const st = getStock();
-  const total = st.fridge + st.frozenHome + st.frozenHosp;
+  const total = st.hospFridge + st.hospFrozen + st.homeFrozen;
   const maxBar = Math.max(total, 500);
 
-  document.getElementById('tile-fridge').textContent = st.fridge;
-  document.getElementById('tile-frozen-home').textContent = st.frozenHome;
-  document.getElementById('tile-frozen-hosp').textContent = st.frozenHosp;
+  document.getElementById('tile-hospFridge').textContent = st.hospFridge;
+  document.getElementById('tile-hospFrozen').textContent = st.hospFrozen;
+  document.getElementById('tile-homeFrozen').textContent = st.homeFrozen;
   document.getElementById('tile-today').textContent = getTodayPumped();
 
-  document.getElementById('fridge-ml-label').textContent = st.fridge + ' ml';
-  document.getElementById('home-ml-label').textContent = st.frozenHome + ' ml';
-  document.getElementById('hosp-ml-label').textContent = st.frozenHosp + ' ml';
+  document.getElementById('hospFridge-ml-label').textContent = st.hospFridge + ' ml';
+  document.getElementById('hospFrozen-ml-label').textContent = st.hospFrozen + ' ml';
+  document.getElementById('homeFrozen-ml-label').textContent = st.homeFrozen + ' ml';
 
-  document.getElementById('bar-fridge').style.width = Math.min(100, (st.fridge/maxBar)*100) + '%';
-  document.getElementById('bar-home').style.width = Math.min(100, (st.frozenHome/maxBar)*100) + '%';
-  document.getElementById('bar-hosp').style.width = Math.min(100, (st.frozenHosp/maxBar)*100) + '%';
+  document.getElementById('bar-hospFridge').style.width = Math.min(100, (st.hospFridge/maxBar)*100) + '%';
+  document.getElementById('bar-hospFrozen').style.width = Math.min(100, (st.hospFrozen/maxBar)*100) + '%';
+  document.getElementById('bar-homeFrozen').style.width = Math.min(100, (st.homeFrozen/maxBar)*100) + '%';
 
-  // Buffer check — per twin
+  // Buffer check — Twin A = hospFridge (fresh), Twin B = hospFrozen (thawed)
   const tA = state.settings.twinA;
   const tB = state.settings.twinB;
   const bufferEl = document.getElementById('fn-buffer');
@@ -724,13 +732,12 @@ function updateDashboard() {
   const alertEl = document.getElementById('stockAlert');
 
   if (tA.feedSize && tB.feedSize) {
-    // Twin A uses fridge, Twin B uses hospital frozen
-    const feedsA = st.fridge / tA.feedSize;   // rounds for Twin A
-    const feedsB = st.frozenHosp / tB.feedSize; // rounds for Twin B
+    const feedsA = (st.hospFridge||0) / tA.feedSize;
+    const feedsB = (st.hospFrozen||0) / tB.feedSize;
     const minFeeds = Math.min(feedsA, feedsB);
     bufferEl.textContent = minFeeds.toFixed(1) + ' feeds';
-    subEl.textContent = `A: ${st.fridge}ml (${feedsA.toFixed(1)} feeds) · B: ${st.frozenHosp}ml (${feedsB.toFixed(1)} feeds) · Target: 2+ each`;
-    const dangerTwin = feedsA < 1 ? 'Twin A (Fridge)' : feedsB < 1 ? 'Twin B (Hospital)' : null;
+    subEl.textContent = `A (Hosp Fridge): ${st.hospFridge}ml = ${feedsA.toFixed(1)} feeds · B (Hosp Frozen): ${st.hospFrozen}ml = ${feedsB.toFixed(1)} feeds · Target: 2+ each`;
+    const dangerTwin = feedsA < 1 ? 'Twin A (Hosp Fridge)' : feedsB < 1 ? 'Twin B (Hosp Frozen)' : null;
     const warnTwin = feedsA < 2 ? 'Twin A' : feedsB < 2 ? 'Twin B' : null;
     if (dangerTwin) {
       alertEl.className = 'danger';
@@ -740,11 +747,10 @@ function updateDashboard() {
       alertEl.textContent = `⚠️ Low buffer for ${warnTwin} — under 2 feeds. Pump more soon!`;
     } else {
       alertEl.className = 'ok';
-      alertEl.textContent = `✅ Good stock — A: ${feedsA.toFixed(1)} feeds · B: ${feedsB.toFixed(1)} feeds`;
+      alertEl.textContent = `✅ Good — A: ${feedsA.toFixed(1)} feeds (🏥🧊) · B: ${feedsB.toFixed(1)} feeds (🏥❄️)`;
     }
   } else {
-    const available = st.fridge + st.frozenHome + st.frozenHosp;
-    bufferEl.textContent = available + ' ml';
+    bufferEl.textContent = total + ' ml';
     subEl.textContent = 'Set feed sizes in Settings to see feed count';
     alertEl.style.display = 'none';
   }
@@ -752,7 +758,7 @@ function updateDashboard() {
 
 // ─── FORM STATE ───────────────────────────────────────────────────────────────
 let pumpDest = null;
-let useLoc = 'fridge';
+let useLoc = 'hospFridge';
 let mvAction = null;
 let mvLoc = 'home';
 let feedTwin = null;
@@ -761,40 +767,33 @@ let activeFilter = 'all';
 
 function setDest(d) {
   pumpDest = d;
-  ['freeze-home','freeze-hosp','fridge'].forEach(x => {
-    const btn = document.getElementById('dest-'+x);
-    btn.className = 'toggle-btn';
-  });
-  const cls = d === 'fridge' ? 'active-fridge' : 'active-freeze';
-  document.getElementById('dest-'+d).classList.add(cls);
+  ['hospFridge','hospFrozen','homeFrozen'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
+  document.getElementById('dest-'+d).classList.add(locActive(d));
 }
 
 function setUseLoc(l) {
   useLoc = l;
-  ['fridge','home','hosp'].forEach(x => {
-    document.getElementById('use-loc-'+x).className = 'toggle-btn';
-  });
-  const cls = l === 'fridge' ? 'active-fridge' : l === 'home' ? 'active-home' : 'active-hospital';
-  document.getElementById('use-loc-'+l).classList.add(cls);
+  locIds().forEach(x => document.getElementById('use-loc-'+x).className = 'toggle-btn');
+  document.getElementById('use-loc-'+l).classList.add(locActive(l));
 }
 
 function setMvAction(a) {
   mvAction = a;
-  ['freeze','thaw'].forEach(x => document.getElementById('mv-'+x).className = 'toggle-btn');
-  document.getElementById('mv-'+a).classList.add(a === 'freeze' ? 'active-freeze' : 'active-fridge');
+  ['home-to-hospfrozen','hospfrozen-to-hospfridge','hospfridge-to-hospfrozen'].forEach(x => {
+    const el = document.getElementById('mv-'+x);
+    if (el) el.className = 'toggle-btn';
+  });
+  const el = document.getElementById('mv-'+a);
+  if (el) el.classList.add('active-freeze');
 }
 
-function setMvLoc(l) {
-  mvLoc = l;
-  ['home','hosp'].forEach(x => document.getElementById('mv-loc-'+x).className = 'toggle-btn');
-  document.getElementById('mv-loc-'+l).classList.add(l === 'home' ? 'active-home' : 'active-hospital');
-}
+function setMvLoc(l) { mvLoc = l; } // legacy — no longer used
 
-// Twin A = fridge, Twin B = hospital frozen (auto)
+// Twin A = hospFridge (fresh), Twin B = hospFrozen (thawed)
 function autoSourceForTwin(twin) {
-  if (twin === 'A') return 'fridge';
-  if (twin === 'B') return 'hosp';
-  return null; // Both — handled separately
+  if (twin === 'A') return 'hospFridge';
+  if (twin === 'B') return 'hospFrozen';
+  return null;
 }
 
 function setFeedTwin(t) {
@@ -810,17 +809,17 @@ function setFeedTwin(t) {
       infoBox.style.display = 'block';
       infoBox.style.background = '#eefff4';
       infoBox.style.borderColor = 'var(--sage)';
-      infoText.innerHTML = '🧊 <strong>Twin A</strong> — auto-deducting from <strong>Fridge</strong>';
+      infoText.innerHTML = '🏥🧊 <strong>Twin A</strong> — auto-deducting from <strong>Hospital Fridge</strong> (fresh)';
     } else if (t === 'B') {
       infoBox.style.display = 'block';
       infoBox.style.background = '#ddeeff';
       infoBox.style.borderColor = 'var(--sky)';
-      infoText.innerHTML = '🏥 <strong>Twin B</strong> — auto-deducting from <strong>Hospital Frozen</strong>';
+      infoText.innerHTML = '🏥❄️ <strong>Twin B</strong> — auto-deducting from <strong>Hospital Frozen</strong> (thawed)';
     } else {
       infoBox.style.display = 'block';
       infoBox.style.background = 'var(--cream)';
       infoBox.style.borderColor = 'var(--soft-gold)';
-      infoText.innerHTML = '👶👶 <strong>Both</strong> — Twin A from 🧊 Fridge · Twin B from 🏥 Hospital Frozen';
+      infoText.innerHTML = '👶👶 <strong>Both</strong> — Twin A from 🏥🧊 Hosp Fridge · Twin B from 🏥❄️ Hosp Frozen';
     }
   }
   updateFeedTotal();
@@ -841,9 +840,8 @@ function toggleFeedOverride() {
 
 function setFeedFrom(f) {
   feedFrom = f;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('feed-from-'+x).className = 'toggle-btn');
-  const cls = f === 'fridge' ? 'active-fridge' : f === 'home' ? 'active-home' : 'active-hospital';
-  document.getElementById('feed-from-'+f).classList.add(cls);
+  locIds().forEach(x => document.getElementById('feed-from-'+x).className = 'toggle-btn');
+  document.getElementById('feed-from-'+f).classList.add(locActive(f));
 }
 
 function updatePumpTotal() {
@@ -858,13 +856,13 @@ function updateFeedTotal() {
   const tA = state.settings.twinA;
   const tB = state.settings.twinB;
   if (feedTwin === 'Both' && amt > 0) {
-    row.textContent = `Total: ${amt*2}ml — Twin A: ${amt}ml from Fridge · Twin B: ${amt}ml from Hospital`;
+    row.textContent = `Total: ${amt*2}ml — Twin A: ${amt}ml from 🏥🧊 Hosp Fridge · Twin B: ${amt}ml from 🏥❄️ Hosp Frozen`;
   } else if (feedTwin === 'A' && amt > 0) {
     const hint = tA.feedSize ? ` (usual: ${tA.feedSize}ml)` : '';
-    row.textContent = `${amt}ml for Twin A from 🧊 Fridge${hint}`;
+    row.textContent = `${amt}ml for Twin A from 🏥🧊 Hosp Fridge (fresh)${hint}`;
   } else if (feedTwin === 'B' && amt > 0) {
     const hint = tB.feedSize ? ` (usual: ${tB.feedSize}ml)` : '';
-    row.textContent = `${amt}ml for Twin B from 🏥 Hospital Frozen${hint}`;
+    row.textContent = `${amt}ml for Twin B from 🏥❄️ Hosp Frozen (thawed)${hint}`;
   } else row.textContent = '';
 }
 
@@ -873,10 +871,10 @@ let scLoc = null, adjLoc = null, adjDir = null, discLoc = null, discReason = nul
 
 function setScLoc(l) {
   scLoc = l;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
-  document.getElementById('sc-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+  locIds().forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('sc-loc-'+l).classList.add(locActive(l));
   const st = getStock();
-  const cur = l==='fridge' ? st.fridge : l==='home' ? st.frozenHome : st.frozenHosp;
+  const cur = st[l] || 0;
   document.getElementById('sc-current').style.display = 'block';
   document.getElementById('sc-current-val').textContent = cur + 'ml';
   updateScDiff();
@@ -887,7 +885,7 @@ function updateScDiff() {
   const diffEl = document.getElementById('sc-diff');
   if (!scLoc || isNaN(actual)) { diffEl.style.display = 'none'; return; }
   const st = getStock();
-  const cur = scLoc==='fridge' ? st.fridge : scLoc==='home' ? st.frozenHome : st.frozenHosp;
+  const cur = st[scLoc] || 0;
   const delta = actual - cur;
   diffEl.style.display = 'block';
   if (delta === 0) {
@@ -907,7 +905,7 @@ function saveStockCount() {
   const actual = parseFloat(document.getElementById('sc-actual').value);
   if (isNaN(actual) || actual < 0) { toast('Enter actual stock amount'); return; }
   const st = getStock();
-  const cur = scLoc==='fridge' ? st.fridge : scLoc==='home' ? st.frozenHome : st.frozenHosp;
+  const cur = st[scLoc] || 0;
   const delta = actual - cur;
   state.log.push({
     id: Date.now(), type: 'stockcount', time: new Date().toISOString(),
@@ -918,15 +916,16 @@ function saveStockCount() {
   document.getElementById('sc-actual').value = '';
   document.getElementById('sc-diff').style.display = 'none';
   document.getElementById('sc-current').style.display = 'none';
+  const savedLoc = scLoc;
   scLoc = null;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
-  toast(`📦 Stock count saved — ${actual}ml set for ${scLoc || 'location'}`);
+  locIds().forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  toast(`📦 Stock count saved — ${actual}ml for ${locLabel(savedLoc)}`);
 }
 
 function setAdjLoc(l) {
   adjLoc = l;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
-  document.getElementById('adj-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+  locIds().forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  document.getElementById('adj-loc-'+l).classList.add(locActive(l));
 }
 function setAdjDir(d) {
   adjDir = d;
@@ -949,15 +948,15 @@ function saveAdjustment() {
   document.getElementById('adj-amount').value = '';
   document.getElementById('adj-reason').value = '';
   adjLoc = null; adjDir = null;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  locIds().forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
   ['add','sub'].forEach(x => document.getElementById('adj-dir-'+x).className = 'toggle-btn');
   toast('⚖️ Adjustment saved');
 }
 
 function setDiscLoc(l) {
   discLoc = l;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
-  document.getElementById('disc-loc-'+l).classList.add(l==='fridge'?'active-fridge':l==='home'?'active-home':'active-hospital');
+  locIds().forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('disc-loc-'+l).classList.add(locActive(l));
 }
 function setDiscReason(r) {
   discReason = r;
@@ -972,9 +971,9 @@ function saveDiscard() {
   const amount = parseFloat(document.getElementById('disc-amount').value);
   if (!amount) { toast('Enter amount to discard'); return; }
   const st = getStock();
-  const avail = discLoc==='fridge' ? st.fridge : discLoc==='home' ? st.frozenHome : st.frozenHosp;
+  const avail = st[discLoc] || 0;
   if (amount > avail) { toast(`Only ${avail}ml available in that location`); return; }
-  if (!confirm(`Discard ${amount}ml from ${discLoc === 'fridge' ? 'Fridge' : discLoc === 'home' ? 'Home Frozen' : 'Hospital Frozen'}? Reason: ${discReason}. This cannot be undone.`)) return;
+  if (!confirm(`Discard ${amount}ml from ${locLabel(discLoc)}? Reason: ${discReason}. This cannot be undone.`)) return;
   state.log.push({
     id: Date.now(), type: 'discard', time: new Date().toISOString(),
     loc: discLoc, amount, reason: discReason,
@@ -984,7 +983,7 @@ function saveDiscard() {
   document.getElementById('disc-amount').value = '';
   document.getElementById('disc-notes').value = '';
   discLoc = null; discReason = null;
-  ['fridge','home','hosp'].forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  locIds().forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
   ['expired','contaminated','freezer','other'].forEach(x => document.getElementById('disc-r-'+x).className = 'toggle-btn');
   toast('🗑️ Discard recorded — ' + amount + 'ml');
 }
@@ -1011,7 +1010,7 @@ function savePump() {
   document.getElementById('pump-notes').value = '';
   document.getElementById('pump-total').textContent = '0 ml';
   pumpDest = null;
-  ['freeze-home','freeze-hosp','fridge'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
+  ['hospFridge','hospFrozen','homeFrozen'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
   toast('✅ Pump session saved — ' + total + 'ml');
   showPage('home', document.querySelector('nav button'));
 }
@@ -1020,7 +1019,7 @@ function useStock() {
   const amount = parseFloat(document.getElementById('use-amount').value);
   if (!amount) { toast('Enter amount used'); return; }
   const st = getStock();
-  const avail = useLoc === 'fridge' ? st.fridge : useLoc === 'home' ? st.frozenHome : st.frozenHosp;
+  const avail = st[useLoc] || 0;
   if (amount > avail) { toast('Not enough stock in that location'); return; }
   state.log.push({
     id: Date.now(), type: 'use', time: new Date().toISOString(),
@@ -1036,21 +1035,28 @@ function useStock() {
 function saveMoveStock() {
   const amount = parseFloat(document.getElementById('mv-amount').value);
   if (!amount) { toast('Enter amount'); return; }
-  if (!mvAction) { toast('Choose action (freeze/thaw)'); return; }
+  if (!mvAction) { toast('Choose a transfer type'); return; }
   const st = getStock();
-  if (mvAction === 'freeze' && amount > st.fridge) { toast('Not enough in fridge'); return; }
-  if (mvAction === 'thaw') {
-    const avail = mvLoc === 'home' ? st.frozenHome : st.frozenHosp;
-    if (amount > avail) { toast('Not enough frozen stock'); return; }
-  }
+  // Check source has enough
+  const srcChecks = {
+    'home-to-hospfrozen': ['homeFrozen', 'Home Frozen'],
+    'hospfrozen-to-hospfridge': ['hospFrozen', 'Hosp Frozen'],
+    'hospfridge-to-hospfrozen': ['hospFridge', 'Hosp Fridge']
+  };
+  const chk = srcChecks[mvAction];
+  if (chk && amount > (st[chk[0]] || 0)) { toast('Not enough in ' + chk[1]); return; }
   state.log.push({
     id: Date.now(), type: 'move', time: new Date().toISOString(),
-    action: mvAction, loc: mvLoc, amount,
+    action: mvAction, amount,
     notes: document.getElementById('mv-notes').value
   });
   saveState(); updateDashboard(); renderLog();
   document.getElementById('mv-amount').value = '';
   document.getElementById('mv-notes').value = '';
+  mvAction = null;
+  ['home-to-hospfrozen','hospfrozen-to-hospfridge','hospfridge-to-hospfrozen'].forEach(x => {
+    const el = document.getElementById('mv-'+x); if (el) el.className = 'toggle-btn';
+  });
   toast('✅ Stock movement saved');
 }
 
@@ -1062,26 +1068,21 @@ function saveFeed() {
   const st = getStock();
 
   if (isOverride) {
-    // Manual location
     if (!feedFrom) { toast('Select where feed came from'); return; }
     const totalUsed = feedTwin === 'Both' ? amount * 2 : amount;
-    const avail = feedFrom === 'fridge' ? st.fridge : feedFrom === 'home' ? st.frozenHome : st.frozenHosp;
+    const avail = st[feedFrom] || 0;
     if (totalUsed > avail) { toast('Not enough stock in that location'); return; }
     state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from: feedFrom, notes: document.getElementById('feed-notes').value });
   } else if (feedTwin === 'Both') {
-    // Twin A from fridge, Twin B from hosp — check each separately
-    if (amount > st.fridge) { toast(`Not enough fridge stock for Twin A (need ${amount}ml, have ${st.fridge}ml)`); return; }
-    if (amount > st.frozenHosp) { toast(`Not enough hospital frozen for Twin B (need ${amount}ml, have ${st.frozenHosp}ml)`); return; }
-    // Log as two separate entries for clarity
-    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: 'A', amount, from: 'fridge', notes: document.getElementById('feed-notes').value });
-    state.log.push({ id: Date.now()+1, type: 'feed', time: new Date().toISOString(), twin: 'B', amount, from: 'hosp', notes: document.getElementById('feed-notes').value });
+    if (amount > (st.hospFridge || 0)) { toast(`Not enough in Hosp Fridge for Twin A (need ${amount}ml, have ${st.hospFridge}ml)`); return; }
+    if (amount > (st.hospFrozen || 0)) { toast(`Not enough in Hosp Frozen for Twin B (need ${amount}ml, have ${st.hospFrozen}ml)`); return; }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: 'A', amount, from: 'hospFridge', notes: document.getElementById('feed-notes').value });
+    state.log.push({ id: Date.now()+1, type: 'feed', time: new Date().toISOString(), twin: 'B', amount, from: 'hospFrozen', notes: document.getElementById('feed-notes').value });
   } else {
-    // Auto source: A=fridge, B=hosp
     const from = autoSourceForTwin(feedTwin);
-    const avail = from === 'fridge' ? st.fridge : st.frozenHosp;
+    const avail = st[from] || 0;
     if (amount > avail) {
-      const loc = from === 'fridge' ? 'Fridge' : 'Hospital Frozen';
-      toast(`Not enough in ${loc} for Twin ${feedTwin} (need ${amount}ml, have ${avail}ml)`);
+      toast(`Not enough in ${locLabel(from)} for Twin ${feedTwin} (need ${amount}ml, have ${avail}ml)`);
       return;
     }
     state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from, notes: document.getElementById('feed-notes').value });
@@ -1120,8 +1121,12 @@ function renderLog() {
     const dt = d.toLocaleDateString('en-GB', {day:'numeric',month:'short'}) + ' ' +
                d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit'});
     if (e.type === 'pump') {
-      const destLabel = e.dest === 'fridge' ? '🧊 Fridge' : e.dest === 'freeze-home' ? '❄️ Home Freeze' : '🏥 Hosp Freeze';
-      const cls = e.dest === 'fridge' ? 'badge-fridge' : 'badge-freeze';
+      const destMap = {
+        hospFridge: '🏥🧊 Hosp Fridge', hospFrozen: '🏥❄️ Hosp Frozen', homeFrozen: '🏠❄️ Home Frozen',
+        fridge: '🏥🧊 Hosp Fridge', 'freeze-hosp': '🏥❄️ Hosp Frozen', 'freeze-home': '🏠❄️ Home Frozen'
+      };
+      const destLabel = destMap[e.dest] || e.dest;
+      const cls = (e.dest === 'hospFridge' || e.dest === 'fridge') ? 'badge-fridge' : 'badge-freeze';
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount">🤱 ${e.total}ml</div>
@@ -1132,7 +1137,8 @@ function renderLog() {
       </div>`;
     } else if (e.type === 'feed') {
       const total = e.twin === 'Both' ? e.amount*2 : e.amount;
-      const fromLabel = e.from === 'fridge' ? '🧊' : e.from === 'home' ? '❄️' : '🏥';
+      const fromMap = { hospFridge: '🏥🧊', hospFrozen: '🏥❄️', homeFrozen: '🏠❄️', fridge: '🏥🧊', hosp: '🏥❄️', home: '🏠❄️' };
+      const fromLabel = fromMap[e.from] || '🍼';
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount">🍼 ${total}ml</div>
@@ -1142,55 +1148,60 @@ function renderLog() {
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'use') {
-      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const loc = locLabel(e.loc);
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount">📤 ${e.amount}ml</div>
-          <div class="log-meta">${dt} · From ${locLabel}${e.notes ? ' · '+e.notes : ''}</div>
+          <div class="log-meta">${dt} · From ${loc}${e.notes ? ' · '+e.notes : ''}</div>
         </div>
         <div><span class="log-badge badge-feed">Used</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'move') {
-      const actionLabel = e.action === 'freeze' ? 'Fridge→Freeze' : 'Thaw';
-      const locLabel = e.loc === 'home' ? 'Home' : 'Hospital';
+      const mvLabels = {
+        'home-to-hospfrozen': '🏠❄️ → 🏥❄️',
+        'hospfrozen-to-hospfridge': '🏥❄️ → 🏥🧊 (Thaw)',
+        'hospfridge-to-hospfrozen': '🏥🧊 → 🏥❄️ (Freeze)',
+        'freeze': '→ Freeze', 'thaw': 'Thaw →'
+      };
+      const actionLabel = mvLabels[e.action] || e.action;
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount">🔄 ${e.amount}ml</div>
-          <div class="log-meta">${dt} · ${actionLabel} · ${locLabel}${e.notes ? ' · '+e.notes : ''}</div>
+          <div class="log-meta">${dt} · ${actionLabel}${e.notes ? ' · '+e.notes : ''}</div>
         </div>
-        <div><span class="log-badge badge-thaw">${actionLabel}</span>
+        <div><span class="log-badge badge-thaw">Transfer</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'discard') {
-      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const loc = locLabel(e.loc);
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount" style="color:#c00">🗑️ -${e.amount}ml</div>
-          <div class="log-meta">${dt} · ${locLabel} · ${e.reason}${e.notes ? ' · '+e.notes : ''}</div>
+          <div class="log-meta">${dt} · ${dLocLabel} · ${e.reason}${e.notes ? ' · '+e.notes : ''}</div>
         </div>
         <div><span class="log-badge badge-discard">Discarded</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'adjust') {
-      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const loc = locLabel(e.loc);
       const sign = e.dir === 'add' ? '+' : '-';
       const cls = e.dir === 'add' ? 'badge-adjust-up' : 'badge-adjust-down';
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount" style="color:${e.dir==='add'?'var(--deep-sage)':'#8a6000'}">${sign}${e.amount}ml</div>
-          <div class="log-meta">${dt} · ${locLabel}${e.reason ? ' · '+e.reason : ''}</div>
+          <div class="log-meta">${dt} · ${aLocLabel}${e.reason ? ' · '+e.reason : ''}</div>
         </div>
         <div><span class="log-badge ${cls}">Adjust</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'stockcount') {
-      const locLabel = e.loc === 'fridge' ? '🧊 Fridge' : e.loc === 'home' ? '❄️ Home' : '🏥 Hosp';
+      const loc = locLabel(e.loc);
       const sign = e.delta >= 0 ? '+' : '';
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount" style="color:#5a3d9a">📦 ${e.actual}ml</div>
-          <div class="log-meta">${dt} · ${locLabel} · Set to ${e.actual}ml (${sign}${e.delta}ml adj)${e.notes ? ' · '+e.notes : ''}</div>
+          <div class="log-meta">${dt} · ${scLocLabel} · Set to ${e.actual}ml (${sign}${e.delta}ml adj)${e.notes ? ' · '+e.notes : ''}</div>
         </div>
         <div><span class="log-badge badge-stockcount">Stock Take</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
