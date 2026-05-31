@@ -1221,7 +1221,7 @@ function renderLog() {
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'discard') {
-      const loc = locLabel(e.loc);
+      const dLocLabel = locLabel(e.loc);
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount" style="color:#c00">🗑️ -${e.amount}ml</div>
@@ -1231,7 +1231,7 @@ function renderLog() {
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'adjust') {
-      const loc = locLabel(e.loc);
+      const aLocLabel = locLabel(e.loc);
       const sign = e.dir === 'add' ? '+' : '-';
       const cls = e.dir === 'add' ? 'badge-adjust-up' : 'badge-adjust-down';
       return `<div class="log-item">
@@ -1243,7 +1243,7 @@ function renderLog() {
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     } else if (e.type === 'stockcount') {
-      const loc = locLabel(e.loc);
+      const scLocLabel = locLabel(e.loc);
       const sign = e.delta >= 0 ? '+' : '';
       return `<div class="log-item">
         <div class="log-main">
@@ -1434,7 +1434,7 @@ async function syncFromSheet() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Pulling from sheet...');
   try {
-    const result = await gasRequest('pull');
+    const result = await gasRequest('pull', null);
     if (result.status === 'ok') {
       const cloudLog = result.log || [];
       const cloudSettings = result.settings || null;
@@ -1458,7 +1458,7 @@ async function fullSync() {
   if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
   setSyncStatus('syncing', '⏳ Step 1/2 — pulling from sheet...');
   try {
-    const pullResult = await gasRequest('pull');
+    const pullResult = await gasRequest('pull', null);
     if (pullResult.status !== 'ok') throw new Error('Pull failed: ' + (pullResult.message || 'unknown'));
 
     const merged = mergeLog(state.log, pullResult.log || []);
@@ -1491,7 +1491,7 @@ async function autoSyncOnLoad() {
   if (!SCRIPT_URL) return;
   setSyncStatus('syncing', '⏳ Loading cloud data...');
   try {
-    const result = await gasRequest('pull');
+    const result = await gasRequest('pull', null);
     if (result.status === 'ok') {
       const merged = mergeLog(state.log, result.log || []);
       state.log = merged;
