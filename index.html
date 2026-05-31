@@ -503,6 +503,18 @@
       🤱 No stock deducted — slot marked as done so auto-feed skips it
     </div>
 
+    <!-- Breastfeed details (shown only in breast mode) -->
+    <div id="breast-details" style="display:none">
+      <label style="margin-top:12px">Breast Used</label>
+      <div class="toggle-group">
+        <button class="toggle-btn" id="breast-left"  onclick="setBreast('left')">◀️ Left</button>
+        <button class="toggle-btn" id="breast-right" onclick="setBreast('right')">Right ▶️</button>
+        <button class="toggle-btn" id="breast-both"  onclick="setBreast('both')">◀️▶️ Both</button>
+      </div>
+      <label style="margin-top:12px">Duration (minutes per breast)</label>
+      <input type="number" id="breast-duration" placeholder="e.g. 15" min="1" max="60">
+    </div>
+
     <label style="margin-top:12px">Twin</label>
     <div class="toggle-group">
       <button class="toggle-btn" id="feed-a" onclick="setFeedTwin('A')">👶 Twin A</button>
@@ -657,6 +669,30 @@
 </nav>
 
 <div class="success-toast" id="toast"></div>
+
+<!-- Convert Feed Type Modal -->
+<div id="convert-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--warm-white);border-radius:18px;padding:24px;margin:20px;width:calc(100% - 40px);max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+    <h3 style="font-family:'DM Serif Display',serif;color:var(--deep-rose);margin-bottom:4px" id="convert-modal-title">Convert Feed</h3>
+    <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:16px" id="convert-modal-desc"></p>
+    <div id="convert-bottle-fields">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Amount (ml)</label>
+      <input type="number" id="convert-amount" placeholder="e.g. 60" min="0"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none;margin-bottom:10px">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Twin</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="toggle-btn" id="cv-twin-a" onclick="setCvTwin('A')" style="flex:1">👶 Twin A</button>
+        <button class="toggle-btn" id="cv-twin-b" onclick="setCvTwin('B')" style="flex:1">👶 Twin B</button>
+        <button class="toggle-btn" id="cv-twin-both" onclick="setCvTwin('Both')" style="flex:1">👶👶 Both</button>
+      </div>
+      <div id="cv-source-info" style="font-size:0.78rem;color:var(--text-mid);padding:6px 10px;background:var(--cream);border-radius:8px;margin-bottom:10px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="closeConvertModal()" style="flex:1;padding:11px;background:var(--cream);color:var(--text-mid);border:1.5px solid var(--soft-gold);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer">Cancel</button>
+      <button onclick="saveConvert()" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--rose),var(--deep-rose));color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer">Convert & Sync</button>
+    </div>
+  </div>
+</div>
 
 <!-- Edit Pump Time Modal -->
 <div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
@@ -1011,17 +1047,26 @@ function setFeedTwin(t) {
   updateFeedTotal();
 }
 
+function setBreast(side) {
+  breastSide = side;
+  ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn');
+  const cls = side === 'left' ? 'active-fridge' : side === 'right' ? 'active-freeze' : 'active-home';
+  document.getElementById('breast-'+side).classList.add(cls);
+}
+
 function setFeedType(t) {
   feedType = t;
   ['bottle','breast'].forEach(x => document.getElementById('feedtype-'+x).className = 'toggle-btn');
   document.getElementById('feedtype-'+t).classList.add(t === 'bottle' ? 'active-fridge' : 'active-freeze');
   const isBreast = t === 'breast';
-  document.getElementById('breast-info').style.display          = isBreast ? 'block' : 'none';
-  document.getElementById('feed-amount-section').style.display  = isBreast ? 'none'  : 'block';
-  document.getElementById('feed-override-section').style.display = isBreast ? 'none' : 'block';
-  document.getElementById('feed-override-panel').style.display  = 'none';
-  document.getElementById('feed-source-info').style.display     = 'none';
-  if (feedTwin) setFeedTwin(feedTwin); // refresh source info if twin already selected
+  document.getElementById('breast-info').style.display           = isBreast ? 'block' : 'none';
+  document.getElementById('breast-details').style.display        = isBreast ? 'block' : 'none';
+  document.getElementById('feed-amount-section').style.display   = isBreast ? 'none'  : 'block';
+  document.getElementById('feed-override-section').style.display = isBreast ? 'none'  : 'block';
+  document.getElementById('feed-override-panel').style.display   = 'none';
+  document.getElementById('feed-source-info').style.display      = 'none';
+  if (!isBreast) { breastSide = null; ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn'); }
+  if (feedTwin) setFeedTwin(feedTwin);
 }
 
 function toggleFeedOverride() {
@@ -1068,6 +1113,7 @@ function updateFeedTotal() {
 // ─── STOCK MANAGEMENT FORM STATE ─────────────────────────────────────────────
 let scLoc = null, adjLoc = null, adjDir = null, discLoc = null, discReason = null;
 let feedType = 'bottle'; // 'bottle' or 'breast'
+let breastSide = null;  // 'left' | 'right' | 'both'
 
 function setScLoc(l) {
   scLoc = l;
@@ -1266,14 +1312,23 @@ function saveFeed() {
 
   // ── Breastfeed session — no stock deduction ──────────────────────────────
   if (feedType === 'breast') {
+    const duration = parseFloat(document.getElementById('breast-duration').value) || null;
     state.log.push({
       id: Date.now(), type: 'breastfeed', time: new Date().toISOString(),
-      twin: feedTwin, notes: document.getElementById('feed-notes').value
+      twin: feedTwin,
+      breast: breastSide,
+      duration: duration,
+      notes: document.getElementById('feed-notes').value
     });
     saveState(); updateDashboard(); renderLog(); updateSummary();
     document.getElementById('feed-notes').value = '';
+    document.getElementById('breast-duration').value = '';
+    breastSide = null;
+    ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn');
     const twins = feedTwin === 'Both' ? 'Both twins' : 'Twin ' + feedTwin;
-    toast('🤱 Breastfeed logged for ' + twins + ' — slot marked done');
+    const breastLabel = breastSide ? ' · ' + breastSide + ' breast' : '';
+    const durLabel = duration ? ' · ' + duration + ' min' : '';
+    toast('🤱 Breastfeed logged for ' + twins + durLabel);
     return;
   }
 
@@ -1363,8 +1418,13 @@ function renderLog() {
           <div class="log-amount">🍼 ${total}ml</div>
           <div class="log-meta">${dt} · Twin ${e.twin} · ${fromLabel} · ${e.amount}ml/twin${e.notes ? ' · '+e.notes : ''}</div>
         </div>
-        <div><span class="log-badge badge-feed">Feed</span>
-        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="log-badge badge-feed">Feed</span>
+          <div style="display:flex;gap:4px">
+            <button class="del-btn" style="color:#7a2050;font-size:0.75rem;padding:2px 6px" title="Convert to breastfeed" onclick="convertFeedType(${e.id})">🤱</button>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button>
+          </div>
+        </div>
       </div>`;
     } else if (e.type === 'use') {
       const loc = locLabel(e.loc);
@@ -1427,18 +1487,152 @@ function renderLog() {
       </div>`;
     } else if (e.type === 'breastfeed') {
       const twins = e.twin === 'Both' ? '👶👶 Both' : '👶 Twin ' + e.twin;
+      const breastMap = { left: '◀️ Left', right: 'Right ▶️', both: '◀️▶️ Both' };
+      const breastStr = e.breast ? ' · ' + breastMap[e.breast] : '';
+      const durStr    = e.duration ? ' · ' + e.duration + ' min' : '';
       return `<div class="log-item">
         <div class="log-main">
           <div class="log-amount" style="color:#7a2050">🤱 Breastfed</div>
-          <div class="log-meta">${dt} · ${twins} · No stock deducted${e.notes ? ' · '+e.notes : ''}</div>
+          <div class="log-meta">${dt} · ${twins}${breastStr}${durStr}${e.notes ? ' · '+e.notes : ''}</div>
         </div>
-        <div><span class="log-badge" style="background:#fce8f4;color:#7a2050;border:1px solid #d4a0c0">Breastfeed</span>
-        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="log-badge" style="background:#fce8f4;color:#7a2050;border:1px solid #d4a0c0">Breastfeed</span>
+          <div style="display:flex;gap:4px">
+            <button class="del-btn" style="color:var(--deep-rose);font-size:0.75rem;padding:2px 6px" title="Convert to bottle feed" onclick="convertFeedType(${e.id})">🍼</button>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button>
+          </div>
+        </div>
       </div>`;
     }
     return '';
   }).join('');
 }
+
+// ─── CONVERT FEED TYPE ────────────────────────────────────────────────────────
+let _convertId = null;
+let _convertDirection = null; // 'to-breast' or 'to-bottle'
+let _cvTwin = null;
+
+function convertFeedType(id) {
+  const entry = state.log.find(e => String(e.id) === String(id));
+  if (!entry) { toast('Entry not found'); return; }
+  _convertId = String(id);
+
+  const modal = document.getElementById('convert-modal');
+  const title = document.getElementById('convert-modal-title');
+  const desc  = document.getElementById('convert-modal-desc');
+  const bottleFields = document.getElementById('convert-bottle-fields');
+
+  if (entry.type === 'feed') {
+    // Convert bottle → breastfeed
+    _convertDirection = 'to-breast';
+    title.textContent = '🤱 Convert to Breastfeed';
+    desc.textContent  = 'This will restore the stock that was deducted and mark the slot as a breastfeed instead.';
+    bottleFields.style.display = 'none';
+  } else if (entry.type === 'breastfeed') {
+    // Convert breastfeed → bottle
+    _convertDirection = 'to-bottle';
+    title.textContent = '🍼 Convert to Bottle Feed';
+    desc.textContent  = 'Enter the amount given and which twin. Stock will be deducted accordingly.';
+    bottleFields.style.display = 'block';
+    // Pre-fill twin from entry
+    _cvTwin = entry.twin || null;
+    if (_cvTwin) setCvTwin(_cvTwin);
+    // Pre-fill amount from settings
+    const defAmt = entry.twin === 'B' ? state.settings.twinB.feedSize : state.settings.twinA.feedSize;
+    document.getElementById('convert-amount').value = defAmt || '';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function setCvTwin(t) {
+  _cvTwin = t;
+  ['a','b','both'].forEach(x => document.getElementById('cv-twin-'+x).className = 'toggle-btn');
+  document.getElementById('cv-twin-'+t.toLowerCase()).classList.add('active-fridge');
+  const info = document.getElementById('cv-source-info');
+  if (t === 'A') info.textContent = '🏥🧊 Twin A — deducts from Hospital Fridge';
+  else if (t === 'B') info.textContent = '🏥❄️ Twin B — deducts from Hospital Frozen';
+  else info.textContent = '👶👶 Both — Twin A: Hosp Fridge · Twin B: Hosp Frozen';
+}
+
+function closeConvertModal() {
+  document.getElementById('convert-modal').style.display = 'none';
+  _convertId = null; _convertDirection = null; _cvTwin = null;
+}
+
+async function saveConvert() {
+  if (!_convertId) return;
+  const idx = state.log.findIndex(e => String(e.id) === String(_convertId));
+  if (idx === -1) { toast('Entry not found'); closeConvertModal(); return; }
+  const entry = state.log[idx];
+
+  if (_convertDirection === 'to-breast') {
+    // Replace feed entry with breastfeed — stock is restored automatically
+    // (getStock() recalculates from log, removing the feed deduction)
+    state.log[idx] = {
+      id: entry.id, type: 'breastfeed', time: entry.time,
+      twin: entry.twin, notes: entry.notes || 'Converted from bottle'
+    };
+    toast('🤱 Converted to breastfeed — stock restored');
+
+  } else if (_convertDirection === 'to-bottle') {
+    if (!_cvTwin) { toast('Select which twin'); return; }
+    const amount = parseFloat(document.getElementById('convert-amount').value);
+    if (!amount) { toast('Enter feed amount'); return; }
+
+    // Check stock availability
+    const st = getStock();
+    // Temporarily we need to account for the fact the breastfeed entry
+    // doesn't hold stock — so just check current stock levels
+    if (_cvTwin === 'A' || _cvTwin === 'Both') {
+      if (amount > st.hospFridge) { toast('Not enough in Hospital Fridge for Twin A'); return; }
+    }
+    if (_cvTwin === 'B' || _cvTwin === 'Both') {
+      if (amount > (_cvTwin === 'Both' ? getStock().hospFrozen : st.hospFrozen)) {
+        toast('Not enough in Hospital Frozen for Twin B'); return;
+      }
+    }
+
+    if (_cvTwin === 'Both') {
+      // Replace with two feed entries
+      state.log.splice(idx, 1,
+        { id: entry.id,     type: 'feed', time: entry.time, twin: 'A', amount, from: 'hospFridge', notes: entry.notes || 'Converted from breastfeed' },
+        { id: entry.id + 1, type: 'feed', time: entry.time, twin: 'B', amount, from: 'hospFrozen', notes: entry.notes || 'Converted from breastfeed' }
+      );
+    } else {
+      const from = _cvTwin === 'A' ? 'hospFridge' : 'hospFrozen';
+      state.log[idx] = { id: entry.id, type: 'feed', time: entry.time, twin: _cvTwin, amount, from, notes: entry.notes || 'Converted from breastfeed' };
+    }
+    toast('🍼 Converted to bottle feed — stock deducted');
+  }
+
+  saveState();
+  updateDashboard();
+  renderLog();
+  updateSummary();
+  closeConvertModal();
+
+  // Auto-sync to sheet immediately
+  if (SCRIPT_URL) {
+    setSyncStatus('syncing', '⏳ Syncing to sheet...');
+    try {
+      const result = await gasRequest('push', { log: state.log, settings: state.settings });
+      if (result && result.status === 'ok') {
+        setSyncStatus('ok', '✅ Sheet updated — ' + state.log.length + ' entries');
+      } else {
+        setSyncStatus('error', '❌ Local saved but sheet sync failed — push manually');
+      }
+    } catch(e) {
+      setSyncStatus('error', '❌ Local saved but sheet sync failed — push manually');
+    }
+  }
+}
+
+// Close convert modal on backdrop click
+document.getElementById('convert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConvertModal();
+});
 
 function deleteEntry(id) {
   if (!confirm('Delete this entry?')) return;
@@ -1738,25 +1932,41 @@ async function autoSyncOnLoad() {
 
 // ─── AUTO-FEED SCHEDULE ───────────────────────────────────────────────────────
 
-function getFeedSlots(startHour, intervalHours, fromTime, toTime) {
-  // Returns array of SA Date objects for each feed slot between fromTime and toTime
-  const slots = [];
-  const start = new Date(fromTime);
-  // Find first slot at or after fromTime
-  const saFrom = nowSAFromISO(fromTime.toISOString ? fromTime.toISOString() : fromTime);
-  const saTo   = nowSAFromISO(toTime.toISOString   ? toTime.toISOString()   : toTime);
+function getFeedSlots(startHour, intervalHours, fromTimeArg, toTimeArg) {
+  // Works entirely in UTC milliseconds — device timezone ignored.
+  // fromTime / toTime can be Date objects or ISO strings (both treated as UTC).
+  // Returns array of UTC ms values for each feed slot strictly between from and to.
 
-  // Build slots for a 3-day window covering fromTime→toTime
-  for (let dayOffset = -1; dayOffset <= 2; dayOffset++) {
-    const base = new Date(saFrom);
-    base.setDate(base.getDate() + dayOffset);
-    base.setHours(startHour, 0, 0, 0);
+  const fromUtcMs = (fromTimeArg instanceof Date)
+    ? fromTimeArg.getTime()
+    : new Date(fromTimeArg).getTime();
+  const toUtcMs = (toTimeArg instanceof Date)
+    ? toTimeArg.getTime()
+    : new Date(toTimeArg).getTime();
+
+  const slots = [];
+
+  // Find SA date components for fromTime so we can anchor the first slot
+  const saFrom = utcMsToSAComponents(fromUtcMs);
+
+  // Scan 4 days from the from-date to cover any window
+  for (let dayOffset = -1; dayOffset <= 3; dayOffset++) {
+    // Build the slot time: SA date + dayOffset days, at startHour SA time
+    // Convert SA slot time to UTC ms: Date.UTC(...) - SA_OFFSET_MS
+    const slotBaseUtcMs = Date.UTC(
+      saFrom.year, saFrom.month, saFrom.date + dayOffset,
+      startHour, 0, 0
+    ) - SA_OFFSET_MS;
+
     for (let s = 0; s < Math.ceil(24 / intervalHours); s++) {
-      const slot = new Date(base.getTime() + s * intervalHours * 3600000);
-      if (slot > saFrom && slot <= saTo) slots.push(slot);
+      const slotUtcMs = slotBaseUtcMs + s * intervalHours * 3600000;
+      if (slotUtcMs > fromUtcMs && slotUtcMs <= toUtcMs) {
+        slots.push(slotUtcMs); // store as UTC ms
+      }
     }
   }
-  return slots;
+
+  return slots; // array of UTC ms numbers
 }
 
 function getLastFeedTime() {
@@ -1779,38 +1989,41 @@ function applyAutoFeeds() {
   const now = new Date(); // UTC — slots compared in SA time
 
   // If no feeds recorded yet, start from midnight SA today to avoid huge deductions
-  const fromTime = lastFeed || (() => {
-    const sa = nowSA();
-    sa.setHours(0,0,0,0);
-    return sa;
-  })();
+  // fromTime: last feed UTC time, or start of SA today if no feeds yet
+  let fromTime;
+  if (lastFeed) {
+    fromTime = lastFeed; // already a UTC Date from new Date(entry.time)
+  } else {
+    // Midnight SA today in UTC
+    const c = utcMsToSAComponents(Date.now());
+    fromTime = new Date(Date.UTC(c.year, c.month, c.date, 0, 0, 0) - SA_OFFSET_MS);
+  }
 
-  const slots = getFeedSlots(af.startHour, af.intervalHours, fromTime, now);
+  const slots = getFeedSlots(af.startHour, af.intervalHours, fromTime, new Date());
   if (!slots.length) return;
 
   const st = getStock();
   let deducted = 0;
   const details = [];
 
-  for (const slot of slots) {
+  for (const slotUtcMs of slots) {
     // Check enough stock for both twins
-    const curA = getStock().hospFridge;
-    const curB = getStock().hospFrozen;
-    if (tA.feedSize > curA && tB.feedSize > curB) break; // out of stock both
+    if (tA.feedSize > getStock().hospFridge && tB.feedSize > getStock().hospFrozen) break;
 
-    // Skip slot if a breastfeed was already logged within 45 min of this slot
-    const slotUTC = new Date(slot.getTime() - 2*3600000);
-    const slotISO = slotUTC.toISOString(); // SA→UTC
+    // slotUtcMs is already UTC — convert to ISO directly
+    const slotISO = new Date(slotUtcMs).toISOString();
+
+    // Skip if already fed within 45 min of this slot
     const alreadyFed = state.log.some(e =>
       (e.type === 'feed' || e.type === 'breastfeed') &&
-      Math.abs(new Date(e.time) - slotUTC) < 45 * 60000
+      Math.abs(new Date(e.time).getTime() - slotUtcMs) < 45 * 60000
     );
     if (alreadyFed) continue;
 
     // Deduct Twin A from hospFridge
     if (tA.feedSize <= getStock().hospFridge) {
       state.log.push({
-        id: slot.getTime(),
+        id: slotUtcMs,
         type: 'feed', time: slotISO,
         twin: 'A', amount: tA.feedSize, from: 'hospFridge',
         notes: 'Auto-feed'
@@ -1819,7 +2032,7 @@ function applyAutoFeeds() {
     // Deduct Twin B from hospFrozen
     if (tB.feedSize <= getStock().hospFrozen) {
       state.log.push({
-        id: slot.getTime() + 1,
+        id: slotUtcMs + 1,
         type: 'feed', time: slotISO,
         twin: 'B', amount: tB.feedSize, from: 'hospFrozen',
         notes: 'Auto-feed'
@@ -1827,8 +2040,8 @@ function applyAutoFeeds() {
     }
 
     deducted++;
-    const saSlot = new Date(slot.getTime());
-    details.push(pad2(saSlot.getHours()) + ':' + pad2(saSlot.getMinutes()));
+    const sc = utcMsToSAComponents(slotUtcMs);
+    details.push(pad2(sc.hours) + ':' + pad2(sc.minutes));
   }
 
   if (deducted > 0) {
@@ -1857,10 +2070,11 @@ function updateNextFeedDisplay() {
   if (!el) return;
   const af = state.settings.autoFeed || { startHour: 2, intervalHours: 3 };
   const now = nowSA();
-  const slots = getFeedSlots(af.startHour, af.intervalHours, now, new Date(now.getTime() + af.intervalHours * 3600000 + 60000));
+  const nowUtc = new Date();
+  const slots = getFeedSlots(af.startHour, af.intervalHours, nowUtc, new Date(nowUtc.getTime() + af.intervalHours * 3600000 + 60000));
   if (slots.length) {
-    const next = slots[0];
-    el.textContent = '⏰ Next feed slot: ' + pad2(next.getHours()) + ':' + pad2(next.getMinutes()) + ' SA time';
+    const sc = utcMsToSAComponents(slots[0]);
+    el.textContent = '⏰ Next feed slot: ' + pad2(sc.hours) + ':' + pad2(sc.minutes) + ' SA time';
   } else {
     el.textContent = '⏰ Next feed slot calculating...';
   }
