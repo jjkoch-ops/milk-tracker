@@ -654,6 +654,39 @@ let state = {
   }
 };
 
+
+// ─── LEGACY DATA MIGRATION ────────────────────────────────────────────────────
+function fixLegacyEntry(e) {
+  e = Object.assign({}, e);
+
+  // Normalise location — old schema merged loc/from/dest into one 'dest' field
+  if (!e.loc && !e.from && e.dest) {
+    if (e.type === 'adjust' || e.type === 'discard' || e.type === 'stockcount' || e.type === 'use') {
+      e.loc = e.dest;
+    } else if (e.type === 'feed') {
+      e.from = e.dest;
+    }
+  }
+
+  // Map old location keys to new names
+  const locMap = { fridge:'hospFridge', hosp:'hospFrozen', home:'homeFrozen',
+                   'freeze-hosp':'hospFrozen', 'freeze-home':'homeFrozen' };
+  if (e.loc  && locMap[e.loc])  e.loc  = locMap[e.loc];
+  if (e.from && locMap[e.from]) e.from = locMap[e.from];
+  if (e.dest && locMap[e.dest]) e.dest = locMap[e.dest];
+
+  // Fix adjust missing 'dir' field — default to 'add' if amount positive
+  if (e.type === 'adjust' && !e.dir) {
+    e.dir = e.amount >= 0 ? 'add' : 'sub';
+    e.amount = Math.abs(Number(e.amount));
+  }
+
+  // Fix stockcount missing delta
+  if (e.type === 'stockcount' && e.delta === undefined) e.delta = 0;
+
+  return e;
+}
+
 function loadState() {
   try {
     const s = localStorage.getItem('milkTracker');
@@ -667,6 +700,8 @@ function loadState() {
           twinB: { feedSize: old.feedSize || 60, feedsPerDay: old.feedsPerDay || 8 }
         };
       }
+      // Fix any legacy entries in local storage too
+      if (state.log) state.log = state.log.map(fixLegacyEntry);
     }
   } catch(e) {}
 }
@@ -1482,9 +1517,10 @@ async function fullSync() {
 function mergeLog(local, cloud) {
   const map = new Map();
   // Cloud first, then local overrides (local is freshest)
-  [...cloud, ...local].forEach(e => map.set(String(e.id), e));
+  [...cloud, ...local].forEach(e => map.set(String(e.id), fixLegacyEntry(e)));
   return Array.from(map.values()).sort((a,b) => new Date(a.time) - new Date(b.time));
 }
+
 
 // Auto-sync on load if URL exists
 async function autoSyncOnLoad() {
