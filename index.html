@@ -486,21 +486,40 @@
 
   <div class="card">
     <h2>🍼 Record Feeding</h2>
-    <label>Twin</label>
+
+    <!-- Feed type toggle -->
+    <label>Feed Type</label>
+    <div class="toggle-group">
+      <button class="toggle-btn active-fridge" id="feedtype-bottle" onclick="setFeedType('bottle')">🍼 Bottle</button>
+      <button class="toggle-btn" id="feedtype-breast" onclick="setFeedType('breast')">🤱 Breastfeed</button>
+    </div>
+
+    <!-- Breastfeed info box -->
+    <div id="breast-info" style="display:none;margin-top:8px;padding:9px 12px;border-radius:10px;background:#fce8f4;border:1.5px solid #d4a0c0;font-size:0.82rem;color:#7a2050">
+      🤱 No stock deducted — slot marked as done so auto-feed skips it
+    </div>
+
+    <label style="margin-top:12px">Twin</label>
     <div class="toggle-group">
       <button class="toggle-btn" id="feed-a" onclick="setFeedTwin('A')">👶 Twin A</button>
       <button class="toggle-btn" id="feed-b" onclick="setFeedTwin('B')">👶 Twin B</button>
       <button class="toggle-btn" id="feed-both" onclick="setFeedTwin('Both')">👶👶 Both</button>
     </div>
-    <!-- Auto source indicator -->
+
+    <!-- Auto source indicator (bottle only) -->
     <div id="feed-source-info" style="margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--cream);border:1.5px solid var(--soft-gold);font-size:0.82rem;color:var(--text-mid);display:none">
       <span id="feed-source-text"></span>
     </div>
-    <label style="margin-top:12px">Amount (ml per twin)</label>
-    <input type="number" id="feed-amount" placeholder="e.g. 60" min="0" oninput="updateFeedTotal()">
-    <div id="feed-total-row" style="font-size:0.8rem;color:var(--text-mid);margin-top:4px;text-align:right"></div>
-    <!-- Override option -->
-    <div style="margin-top:10px">
+
+    <!-- Amount (bottle only) -->
+    <div id="feed-amount-section">
+      <label style="margin-top:12px">Amount (ml per twin)</label>
+      <input type="number" id="feed-amount" placeholder="e.g. 60" min="0" oninput="updateFeedTotal()">
+      <div id="feed-total-row" style="font-size:0.8rem;color:var(--text-mid);margin-top:4px;text-align:right"></div>
+    </div>
+
+    <!-- Override option (bottle only) -->
+    <div id="feed-override-section" style="margin-top:10px">
       <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.82rem;font-weight:500;color:var(--text-mid);cursor:pointer">
         <input type="checkbox" id="feed-override-chk" onchange="toggleFeedOverride()" style="width:auto;accent-color:var(--rose)">
         Override stock source
@@ -514,7 +533,8 @@
         <button class="toggle-btn" id="feed-from-homeFrozen" onclick="setFeedFrom('homeFrozen')">🏠❄️ Home Frozen</button>
       </div>
     </div>
-    <label>Notes</label>
+
+    <label>Notes (optional)</label>
     <input type="text" id="feed-notes" placeholder="e.g. 10am feed">
     <button class="btn-primary" onclick="saveFeed()">💾 Save Feed</button>
   </div>
@@ -936,6 +956,19 @@ function setFeedTwin(t) {
   updateFeedTotal();
 }
 
+function setFeedType(t) {
+  feedType = t;
+  ['bottle','breast'].forEach(x => document.getElementById('feedtype-'+x).className = 'toggle-btn');
+  document.getElementById('feedtype-'+t).classList.add(t === 'bottle' ? 'active-fridge' : 'active-freeze');
+  const isBreast = t === 'breast';
+  document.getElementById('breast-info').style.display          = isBreast ? 'block' : 'none';
+  document.getElementById('feed-amount-section').style.display  = isBreast ? 'none'  : 'block';
+  document.getElementById('feed-override-section').style.display = isBreast ? 'none' : 'block';
+  document.getElementById('feed-override-panel').style.display  = 'none';
+  document.getElementById('feed-source-info').style.display     = 'none';
+  if (feedTwin) setFeedTwin(feedTwin); // refresh source info if twin already selected
+}
+
 function toggleFeedOverride() {
   const on = document.getElementById('feed-override-chk').checked;
   document.getElementById('feed-override-panel').style.display = on ? 'block' : 'none';
@@ -979,6 +1012,7 @@ function updateFeedTotal() {
 
 // ─── STOCK MANAGEMENT FORM STATE ─────────────────────────────────────────────
 let scLoc = null, adjLoc = null, adjDir = null, discLoc = null, discReason = null;
+let feedType = 'bottle'; // 'bottle' or 'breast'
 
 function setScLoc(l) {
   scLoc = l;
@@ -1173,9 +1207,24 @@ function saveMoveStock() {
 }
 
 function saveFeed() {
+  if (!feedTwin) { toast('Select which twin(s)'); return; }
+
+  // ── Breastfeed session — no stock deduction ──────────────────────────────
+  if (feedType === 'breast') {
+    state.log.push({
+      id: Date.now(), type: 'breastfeed', time: new Date().toISOString(),
+      twin: feedTwin, notes: document.getElementById('feed-notes').value
+    });
+    saveState(); updateDashboard(); renderLog(); updateSummary();
+    document.getElementById('feed-notes').value = '';
+    const twins = feedTwin === 'Both' ? 'Both twins' : 'Twin ' + feedTwin;
+    toast('🤱 Breastfeed logged for ' + twins + ' — slot marked done');
+    return;
+  }
+
+  // ── Bottle feed ───────────────────────────────────────────────────────────
   const amount = parseFloat(document.getElementById('feed-amount').value);
   if (!amount) { toast('Enter feed amount'); return; }
-  if (!feedTwin) { toast('Select which twin(s)'); return; }
   const isOverride = document.getElementById('feed-override-chk').checked;
   const st = getStock();
 
@@ -1220,7 +1269,7 @@ function renderLog() {
   const list = document.getElementById('log-list');
   let entries = [...state.log].reverse();
   if (activeFilter !== 'all') {
-    const map = { pump: 'pump', feed: 'feed', move: ['move','use'], discard: ['discard','adjust','stockcount'] };
+    const map = { pump: 'pump', feed: ['feed','breastfeed'], move: ['move','use'], discard: ['discard','adjust','stockcount'] };
     const types = Array.isArray(map[activeFilter]) ? map[activeFilter] : [map[activeFilter]];
     entries = entries.filter(e => types.includes(e.type));
   }
@@ -1314,6 +1363,16 @@ function renderLog() {
           <div class="log-meta">${dt} · ${scLocLabel} · Set to ${e.actual}ml (${sign}${e.delta}ml adj)${e.notes ? ' · '+e.notes : ''}</div>
         </div>
         <div><span class="log-badge badge-stockcount">Stock Take</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'breastfeed') {
+      const twins = e.twin === 'Both' ? '👶👶 Both' : '👶 Twin ' + e.twin;
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#7a2050">🤱 Breastfed</div>
+          <div class="log-meta">${dt} · ${twins} · No stock deducted${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge" style="background:#fce8f4;color:#7a2050;border:1px solid #d4a0c0">Breastfeed</span>
         <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
       </div>`;
     }
@@ -1606,8 +1665,8 @@ function getFeedSlots(startHour, intervalHours, fromTime, toTime) {
 }
 
 function getLastFeedTime() {
-  // Find the most recent feed log entry time
-  const feeds = state.log.filter(e => e.type === 'feed');
+  // Find the most recent feed or breastfeed entry time
+  const feeds = state.log.filter(e => e.type === 'feed' || e.type === 'breastfeed');
   if (!feeds.length) return null;
   const latest = feeds.reduce((a, b) => new Date(a.time) > new Date(b.time) ? a : b);
   return new Date(latest.time);
@@ -1644,7 +1703,14 @@ function applyAutoFeeds() {
     const curB = getStock().hospFrozen;
     if (tA.feedSize > curA && tB.feedSize > curB) break; // out of stock both
 
-    const slotISO = new Date(slot.getTime() - 2*3600000).toISOString(); // SA→UTC
+    // Skip slot if a breastfeed was already logged within 45 min of this slot
+    const slotUTC = new Date(slot.getTime() - 2*3600000);
+    const slotISO = slotUTC.toISOString(); // SA→UTC
+    const alreadyFed = state.log.some(e =>
+      (e.type === 'feed' || e.type === 'breastfeed') &&
+      Math.abs(new Date(e.time) - slotUTC) < 45 * 60000
+    );
+    if (alreadyFed) continue;
 
     // Deduct Twin A from hospFridge
     if (tA.feedSize <= getStock().hospFridge) {
