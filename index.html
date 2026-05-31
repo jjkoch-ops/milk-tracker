@@ -293,6 +293,9 @@
 </header>
 
 <div id="stockAlert"></div>
+<div id="autoFeedBanner" style="display:none;margin:0 16px 4px;padding:10px 16px;border-radius:12px;background:#e8f4ff;border:1px solid var(--sky);font-size:0.82rem;color:var(--deep-sky)">
+  <strong>🍼 Auto-feeds applied:</strong> <span id="autoFeedDetail"></span>
+</div>
 
 <!-- HOME PAGE -->
 <div class="page active" id="page-home">
@@ -543,6 +546,30 @@
     </p>
   </div>
 
+  <div class="card" style="border-left: 4px solid var(--gold)">
+    <h2 style="color:#7a5500">⏰ Auto-Feed Schedule</h2>
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
+      Feed slots every 3 hours from 02:00 SA time. On app open, any slots since the last recorded feed are auto-deducted.
+    </p>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.9rem;font-weight:500;color:var(--text-dark);cursor:pointer;margin-top:0">
+      <input type="checkbox" id="set-autofeed" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
+      Enable auto-feed deductions on app open
+    </label>
+    <label style="margin-top:12px">First feed time (SA)</label>
+    <select id="set-feed-start" onchange="saveSettings()">
+      <option value="2">02:00</option>
+      <option value="3">03:00</option>
+      <option value="0">00:00</option>
+    </select>
+    <label>Interval (hours)</label>
+    <select id="set-feed-interval" onchange="saveSettings()">
+      <option value="3">Every 3 hours</option>
+      <option value="2">Every 2 hours</option>
+      <option value="4">Every 4 hours</option>
+    </select>
+    <div id="next-feed-display" style="margin-top:10px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
+  </div>
+
   <div class="card" style="border-left: 4px solid var(--sky)">
     <h2 style="color:var(--deep-sky)">👶 Twin B — 🏥❄️ Hosp Frozen (thawed)</h2>
     <label>Feed Size (ml)</label>
@@ -650,7 +677,8 @@ let state = {
   log: [],
   settings: {
     twinA: { feedSize: 60, feedsPerDay: 8 },
-    twinB: { feedSize: 60, feedsPerDay: 8 }
+    twinB: { feedSize: 60, feedsPerDay: 8 },
+    autoFeed: { enabled: true, startHour: 2, intervalHours: 3 }
   }
 };
 
@@ -1310,7 +1338,12 @@ function saveSettings() {
   if (fdA) state.settings.twinA.feedsPerDay = fdA;
   if (fsB) state.settings.twinB.feedSize = fsB;
   if (fdB) state.settings.twinB.feedsPerDay = fdB;
-  saveState(); updateDashboard();
+  // Auto-feed settings
+  if (!state.settings.autoFeed) state.settings.autoFeed = { enabled: true, startHour: 2, intervalHours: 3 };
+  state.settings.autoFeed.enabled      = document.getElementById('set-autofeed').checked;
+  state.settings.autoFeed.startHour    = parseInt(document.getElementById('set-feed-start').value);
+  state.settings.autoFeed.intervalHours = parseInt(document.getElementById('set-feed-interval').value);
+  saveState(); updateDashboard(); updateNextFeedDisplay();
   const bufA = (fsA || state.settings.twinA.feedSize) * 2;
   const bufB = (fsB || state.settings.twinB.feedSize) * 2;
   document.getElementById('set-buffer-a').textContent = bufA + 'ml';
@@ -1324,6 +1357,11 @@ function loadSettings() {
   document.getElementById('set-feeds-day-b').value = state.settings.twinB.feedsPerDay || '';
   document.getElementById('set-buffer-a').textContent = (state.settings.twinA.feedSize * 2 || '—') + (state.settings.twinA.feedSize ? 'ml' : '');
   document.getElementById('set-buffer-b').textContent = (state.settings.twinB.feedSize * 2 || '—') + (state.settings.twinB.feedSize ? 'ml' : '');
+  const af = state.settings.autoFeed || { enabled: true, startHour: 2, intervalHours: 3 };
+  document.getElementById('set-autofeed').checked = af.enabled !== false;
+  document.getElementById('set-feed-start').value = String(af.startHour || 2);
+  document.getElementById('set-feed-interval').value = String(af.intervalHours || 3);
+  updateNextFeedDisplay();
 }
 
 function updateSummary() {
@@ -1543,6 +1581,130 @@ async function autoSyncOnLoad() {
   }
 }
 
+
+// ─── AUTO-FEED SCHEDULE ───────────────────────────────────────────────────────
+
+function getFeedSlots(startHour, intervalHours, fromTime, toTime) {
+  // Returns array of SA Date objects for each feed slot between fromTime and toTime
+  const slots = [];
+  const start = new Date(fromTime);
+  // Find first slot at or after fromTime
+  const saFrom = nowSAFromISO(fromTime.toISOString ? fromTime.toISOString() : fromTime);
+  const saTo   = nowSAFromISO(toTime.toISOString   ? toTime.toISOString()   : toTime);
+
+  // Build slots for a 3-day window covering fromTime→toTime
+  for (let dayOffset = -1; dayOffset <= 2; dayOffset++) {
+    const base = new Date(saFrom);
+    base.setDate(base.getDate() + dayOffset);
+    base.setHours(startHour, 0, 0, 0);
+    for (let s = 0; s < Math.ceil(24 / intervalHours); s++) {
+      const slot = new Date(base.getTime() + s * intervalHours * 3600000);
+      if (slot > saFrom && slot <= saTo) slots.push(slot);
+    }
+  }
+  return slots;
+}
+
+function getLastFeedTime() {
+  // Find the most recent feed log entry time
+  const feeds = state.log.filter(e => e.type === 'feed');
+  if (!feeds.length) return null;
+  const latest = feeds.reduce((a, b) => new Date(a.time) > new Date(b.time) ? a : b);
+  return new Date(latest.time);
+}
+
+function applyAutoFeeds() {
+  const af = state.settings.autoFeed || { enabled: true, startHour: 2, intervalHours: 3 };
+  if (!af.enabled) return;
+
+  const tA = state.settings.twinA;
+  const tB = state.settings.twinB;
+  if (!tA.feedSize || !tB.feedSize) return;
+
+  const lastFeed = getLastFeedTime();
+  const now = new Date(); // UTC — slots compared in SA time
+
+  // If no feeds recorded yet, start from midnight SA today to avoid huge deductions
+  const fromTime = lastFeed || (() => {
+    const sa = nowSA();
+    sa.setHours(0,0,0,0);
+    return sa;
+  })();
+
+  const slots = getFeedSlots(af.startHour, af.intervalHours, fromTime, now);
+  if (!slots.length) return;
+
+  const st = getStock();
+  let deducted = 0;
+  const details = [];
+
+  for (const slot of slots) {
+    // Check enough stock for both twins
+    const curA = getStock().hospFridge;
+    const curB = getStock().hospFrozen;
+    if (tA.feedSize > curA && tB.feedSize > curB) break; // out of stock both
+
+    const slotISO = new Date(slot.getTime() - 2*3600000).toISOString(); // SA→UTC
+
+    // Deduct Twin A from hospFridge
+    if (tA.feedSize <= getStock().hospFridge) {
+      state.log.push({
+        id: slot.getTime(),
+        type: 'feed', time: slotISO,
+        twin: 'A', amount: tA.feedSize, from: 'hospFridge',
+        notes: 'Auto-feed'
+      });
+    }
+    // Deduct Twin B from hospFrozen
+    if (tB.feedSize <= getStock().hospFrozen) {
+      state.log.push({
+        id: slot.getTime() + 1,
+        type: 'feed', time: slotISO,
+        twin: 'B', amount: tB.feedSize, from: 'hospFrozen',
+        notes: 'Auto-feed'
+      });
+    }
+
+    deducted++;
+    const saSlot = new Date(slot.getTime());
+    details.push(pad2(saSlot.getHours()) + ':' + pad2(saSlot.getMinutes()));
+  }
+
+  if (deducted > 0) {
+    saveState();
+    updateDashboard();
+    renderLog();
+    updateSummary();
+
+    // Show banner
+    const banner = document.getElementById('autoFeedBanner');
+    const detail = document.getElementById('autoFeedDetail');
+    banner.style.display = 'block';
+    detail.textContent = deducted + ' feed round' + (deducted>1?'s':'') +
+      ' auto-deducted (' + details.join(', ') + ') — Twin A from 🏥🧊, Twin B from 🏥❄️';
+    setTimeout(() => banner.style.display = 'none', 8000);
+  }
+
+  // Update next feed display
+  updateNextFeedDisplay();
+}
+
+function pad2(n) { return String(n).padStart(2,'0'); }
+
+function updateNextFeedDisplay() {
+  const el = document.getElementById('next-feed-display');
+  if (!el) return;
+  const af = state.settings.autoFeed || { startHour: 2, intervalHours: 3 };
+  const now = nowSA();
+  const slots = getFeedSlots(af.startHour, af.intervalHours, now, new Date(now.getTime() + af.intervalHours * 3600000 + 60000));
+  if (slots.length) {
+    const next = slots[0];
+    el.textContent = '⏰ Next feed slot: ' + pad2(next.getHours()) + ':' + pad2(next.getMinutes()) + ' SA time';
+  } else {
+    el.textContent = '⏰ Next feed slot calculating...';
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 loadState();
 
@@ -1555,6 +1717,9 @@ document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
 
 updateDashboard();
 renderLog();
+
+// Apply auto-feed deductions for missed slots
+applyAutoFeeds();
 
 // Auto pull from sheet on load
 autoSyncOnLoad();
