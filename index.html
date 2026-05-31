@@ -699,6 +699,23 @@
   <div style="background:var(--warm-white);border-radius:18px;padding:24px;margin:20px;width:calc(100% - 40px);max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
     <h3 style="font-family:'DM Serif Display',serif;color:var(--deep-rose);margin-bottom:4px" id="convert-modal-title">Convert Feed</h3>
     <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:16px" id="convert-modal-desc"></p>
+    <!-- Breastfeed fields (shown when converting to breastfeed) -->
+    <div id="convert-breast-fields" style="display:none">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px">Breast Used</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="toggle-btn" id="cv-breast-left"  onclick="setCvBreast('left')"  style="flex:1">◀️ Left</button>
+        <button class="toggle-btn" id="cv-breast-right" onclick="setCvBreast('right')" style="flex:1">Right ▶️</button>
+        <button class="toggle-btn" id="cv-breast-both"  onclick="setCvBreast('both')"  style="flex:1">◀️▶️ Both</button>
+      </div>
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Duration (min per breast)</label>
+      <input type="number" id="cv-duration" placeholder="e.g. 15" min="1" max="60"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none;margin-bottom:10px">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Notes (optional)</label>
+      <input type="text" id="cv-notes" placeholder="e.g. good latch"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none">
+    </div>
+
+    <!-- Bottle fields (shown when converting to bottle) -->
     <div id="convert-bottle-fields">
       <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Amount (ml)</label>
       <input type="number" id="convert-amount" placeholder="e.g. 60" min="0"
@@ -1537,6 +1554,7 @@ function renderLog() {
 let _convertId = null;
 let _convertDirection = null; // 'to-breast' or 'to-bottle'
 let _cvTwin = null;
+let _cvBreast = null;
 
 function convertFeedType(id) {
   const entry = state.log.find(e => String(e.id) === String(id));
@@ -1548,18 +1566,26 @@ function convertFeedType(id) {
   const desc  = document.getElementById('convert-modal-desc');
   const bottleFields = document.getElementById('convert-bottle-fields');
 
+  const breastFields = document.getElementById('convert-breast-fields');
+
   if (entry.type === 'feed') {
     // Convert bottle → breastfeed
     _convertDirection = 'to-breast';
     title.textContent = '🤱 Convert to Breastfeed';
-    desc.textContent  = 'This will restore the stock that was deducted and mark the slot as a breastfeed instead.';
+    desc.textContent  = 'Stock will be restored. Add breastfeed details below.';
     bottleFields.style.display = 'none';
+    breastFields.style.display = 'block';
+    // Pre-fill from existing entry if it was previously a breastfeed
+    _cvBreast = null;
+    document.getElementById('cv-duration').value = '';
+    document.getElementById('cv-notes').value = entry.notes && entry.notes !== 'Auto-feed' ? entry.notes : '';
   } else if (entry.type === 'breastfeed') {
     // Convert breastfeed → bottle
     _convertDirection = 'to-bottle';
     title.textContent = '🍼 Convert to Bottle Feed';
     desc.textContent  = 'Enter the amount given and which twin. Stock will be deducted accordingly.';
     bottleFields.style.display = 'block';
+    breastFields.style.display = 'none';
     // Pre-fill twin from entry
     _cvTwin = entry.twin || null;
     if (_cvTwin) setCvTwin(_cvTwin);
@@ -1581,9 +1607,23 @@ function setCvTwin(t) {
   else info.textContent = '👶👶 Both — Twin A: Hosp Fridge · Twin B: Hosp Frozen';
 }
 
+function setCvBreast(side) {
+  _cvBreast = side;
+  ['left','right','both'].forEach(x => document.getElementById('cv-breast-'+x).className = 'toggle-btn');
+  const cls = side === 'left' ? 'active-fridge' : side === 'right' ? 'active-freeze' : 'active-home';
+  document.getElementById('cv-breast-'+side).classList.add(cls);
+}
+
 function closeConvertModal() {
   document.getElementById('convert-modal').style.display = 'none';
-  _convertId = null; _convertDirection = null; _cvTwin = null;
+  _convertId = null; _convertDirection = null; _cvTwin = null; _cvBreast = null;
+  // Reset breast buttons
+  ['left','right','both'].forEach(x => {
+    const el = document.getElementById('cv-breast-'+x);
+    if (el) el.className = 'toggle-btn';
+  });
+  document.getElementById('cv-duration').value = '';
+  document.getElementById('cv-notes').value = '';
 }
 
 async function saveConvert() {
@@ -1593,13 +1633,18 @@ async function saveConvert() {
   const entry = state.log[idx];
 
   if (_convertDirection === 'to-breast') {
-    // Replace feed entry with breastfeed — stock is restored automatically
-    // (getStock() recalculates from log, removing the feed deduction)
+    const cvDuration = parseFloat(document.getElementById('cv-duration').value) || null;
+    const cvNotes    = document.getElementById('cv-notes').value || 'Converted from bottle';
     state.log[idx] = {
       id: entry.id, type: 'breastfeed', time: entry.time,
-      twin: entry.twin, notes: entry.notes || 'Converted from bottle'
+      twin: entry.twin,
+      breast: _cvBreast || null,
+      duration: cvDuration,
+      notes: cvNotes
     };
-    toast('🤱 Converted to breastfeed — stock restored');
+    const breastStr = _cvBreast ? ' · ' + _cvBreast + ' breast' : '';
+    const durStr    = cvDuration ? ' · ' + cvDuration + 'min' : '';
+    toast('🤱 Converted to breastfeed — stock restored' + breastStr + durStr);
 
   } else if (_convertDirection === 'to-bottle') {
     if (!_cvTwin) { toast('Select which twin'); return; }
