@@ -673,43 +673,70 @@
 
 <script>
 // ─── SA TIME HELPERS (Africa/Johannesburg = UTC+2, no DST) ───────────────────
-function nowSA() {
-  // Returns a Date object representing current SA time
-  const now = new Date();
-  // SA is UTC+2 always (no daylight saving)
-  const saOffset = 2 * 60; // minutes
-  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-  return new Date(utc + saOffset * 60000);
+// ── SA TIME = UTC+2, no DST ─────────────────────────────────────────────────
+// All functions work purely with UTC milliseconds — never trust device timezone.
+
+const SA_OFFSET_MS = 2 * 60 * 60 * 1000; // UTC+2 in ms
+
+function utcMsToSAComponents(utcMs) {
+  // Break UTC ms into SA date/time components
+  const saMs = utcMs + SA_OFFSET_MS;
+  const d = new Date(saMs);
+  return {
+    year:   d.getUTCFullYear(),
+    month:  d.getUTCMonth(),      // 0-indexed
+    date:   d.getUTCDate(),
+    hours:  d.getUTCHours(),
+    minutes:d.getUTCMinutes(),
+    seconds:d.getUTCSeconds()
+  };
 }
 
-function toSADatetimeLocal(date) {
-  // Format a Date as YYYY-MM-DDTHH:MM for datetime-local input (in SA time)
-  const d = new Date(date.getTime());
-  const saOffset = 2 * 60;
-  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-  const sa = new Date(utc + saOffset * 60000);
-  const pad = n => String(n).padStart(2, '0');
-  return `${sa.getFullYear()}-${pad(sa.getMonth()+1)}-${pad(sa.getDate())}T${pad(sa.getHours())}:${pad(sa.getMinutes())}`;
+function nowSA() {
+  // Returns a plain object with SA time components (not a real Date)
+  // Use .getTime() equivalent: nowSA_ms()
+  const c = utcMsToSAComponents(Date.now());
+  // Return a Date object set to SA time fields (for .toDateString() comparisons)
+  return new Date(c.year, c.month, c.date, c.hours, c.minutes, c.seconds);
+}
+
+function nowSAFromISO(isoStr) {
+  // Convert a stored UTC ISO string to SA-time Date for comparisons
+  const utcMs = new Date(isoStr).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  return new Date(c.year, c.month, c.date, c.hours, c.minutes, c.seconds);
+}
+
+function toSADatetimeLocal(dateOrISO) {
+  // Convert a UTC Date or ISO string → "YYYY-MM-DDTHH:MM" in SA time
+  // Safe regardless of device timezone
+  const utcMs = (dateOrISO instanceof Date)
+    ? dateOrISO.getTime()
+    : new Date(dateOrISO).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  const p = n => String(n).padStart(2,'0');
+  return `${c.year}-${p(c.month+1)}-${p(c.date)}T${p(c.hours)}:${p(c.minutes)}`;
 }
 
 function datetimeLocalToISO(dtStr) {
-  // Convert datetime-local string (treated as SA time) to UTC ISO string
-  // dtStr = "YYYY-MM-DDTHH:MM"
+  // Convert "YYYY-MM-DDTHH:MM" (SA time input) → UTC ISO string
+  // Parse manually to avoid browser timezone interpretation of the string
   if (!dtStr) return new Date().toISOString();
-  // Treat as SA (UTC+2): subtract 2h to get UTC
-  const saMs = new Date(dtStr).getTime();
-  const utcMs = saMs - (2 * 60 * 60000);
+  const [datePart, timePart] = dtStr.split('T');
+  const [year, month, day]   = datePart.split('-').map(Number);
+  const [hours, minutes]     = (timePart || '00:00').split(':').map(Number);
+  // This is SA time — subtract 2h to get UTC
+  const utcMs = Date.UTC(year, month - 1, day, hours, minutes, 0) - SA_OFFSET_MS;
   return new Date(utcMs).toISOString();
 }
 
 function formatSATime(isoString) {
-  // Format an ISO string for display in SA time
-  const d = new Date(isoString);
-  const saOffset = 2 * 60;
-  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-  const sa = new Date(utc + saOffset * 60000);
-  return sa.toLocaleDateString('en-ZA', {day:'numeric', month:'short'}) + ' ' +
-         sa.toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
+  // Display a UTC ISO string as SA time, device-timezone-independent
+  const utcMs = new Date(isoString).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  const p = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${c.date} ${months[c.month]} ${p(c.hours)}:${p(c.minutes)}`;
 }
 
 // ─── STATE ───────────────────────────────────────────────────────────────────
@@ -849,12 +876,7 @@ function getTodayPumped() {
     .reduce((s, e) => s + e.total, 0);
 }
 
-function nowSAFromISO(isoStr) {
-  const d = new Date(isoStr);
-  const saOffset = 2 * 60;
-  const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-  return new Date(utc + saOffset * 60000);
-}
+// nowSAFromISO defined above in SA TIME helpers
 
 // ─── UI UPDATES ───────────────────────────────────────────────────────────────
 function updateDashboard() {
