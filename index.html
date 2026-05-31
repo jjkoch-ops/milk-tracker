@@ -574,9 +574,9 @@
   <div class="card" style="border-left: 4px solid var(--sage)">
     <h2 style="color:var(--deep-sage)">👶 Twin A — 🏥🧊 Hosp Fridge (fresh)</h2>
     <label>Feed Size (ml)</label>
-    <input type="number" id="set-feed-size-a" placeholder="e.g. 60" min="1" oninput="saveSettings()">
+    <input type="number" id="set-feed-size-a" placeholder="e.g. 60" min="1" oninput="saveSettings()" onblur="saveSettings()">
     <label>Feeds per Day</label>
-    <input type="number" id="set-feeds-day-a" placeholder="e.g. 8" min="1" oninput="saveSettings()">
+    <input type="number" id="set-feeds-day-a" placeholder="e.g. 8" min="1" oninput="saveSettings()" onblur="saveSettings()">
     <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
       Buffer needed = 2 feeds × feed size = <strong id="set-buffer-a">— ml</strong> from 🏥🧊 Hosp Fridge
     </p>
@@ -633,12 +633,17 @@
   <div class="card" style="border-left: 4px solid var(--sky)">
     <h2 style="color:var(--deep-sky)">👶 Twin B — 🏥❄️ Hosp Frozen (thawed)</h2>
     <label>Feed Size (ml)</label>
-    <input type="number" id="set-feed-size-b" placeholder="e.g. 60" min="1" oninput="saveSettings()">
+    <input type="number" id="set-feed-size-b" placeholder="e.g. 60" min="1" oninput="saveSettings()" onblur="saveSettings()">
     <label>Feeds per Day</label>
-    <input type="number" id="set-feeds-day-b" placeholder="e.g. 8" min="1" oninput="saveSettings()">
+    <input type="number" id="set-feeds-day-b" placeholder="e.g. 8" min="1" oninput="saveSettings()" onblur="saveSettings()">
     <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
       Buffer needed = 2 feeds × feed size = <strong id="set-buffer-b">— ml</strong> from 🏥❄️ Hosp Frozen
     </p>
+  </div>
+
+  <div style="margin-bottom:14px">
+    <button class="btn-primary" onclick="saveSettingsManual()" id="save-settings-btn">💾 Save Settings</button>
+    <div id="save-settings-confirm" style="display:none;text-align:center;font-size:0.82rem;color:var(--deep-sage);margin-top:6px;font-weight:500">✅ Settings saved</div>
   </div>
 
   <div class="card">
@@ -1747,6 +1752,13 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 });
 
 // ─── SETTINGS & SUMMARY ───────────────────────────────────────────────────────
+function saveSettingsManual() {
+  saveSettings();
+  const confirm = document.getElementById('save-settings-confirm');
+  confirm.style.display = 'block';
+  setTimeout(() => confirm.style.display = 'none', 2500);
+}
+
 function saveSettings() {
   const fsA = parseFloat(document.getElementById('set-feed-size-a').value);
   const fdA = parseFloat(document.getElementById('set-feeds-day-a').value);
