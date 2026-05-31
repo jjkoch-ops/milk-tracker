@@ -582,28 +582,52 @@
     </p>
   </div>
 
-  <div class="card" style="border-left: 4px solid var(--gold)">
-    <h2 style="color:#7a5500">⏰ Auto-Feed Schedule</h2>
-    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
-      Feed slots every 3 hours from 02:00 SA time. On app open, any slots since the last recorded feed are auto-deducted.
-    </p>
+  <div class="card" style="border-left:4px solid var(--sage)">
+    <h2 style="color:var(--deep-sage)">⏰ Twin A Feed Schedule — 🏥🧊 Hosp Fridge</h2>
     <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.9rem;font-weight:500;color:var(--text-dark);cursor:pointer;margin-top:0">
-      <input type="checkbox" id="set-autofeed" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
-      Enable auto-feed deductions on app open
+      <input type="checkbox" id="set-autofeed-a" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
+      Enable auto-deduction for Twin A
     </label>
     <label style="margin-top:12px">First feed time (SA)</label>
-    <select id="set-feed-start" onchange="saveSettings()">
-      <option value="2">02:00</option>
-      <option value="3">03:00</option>
-      <option value="0">00:00</option>
+    <select id="set-feed-start-a" onchange="saveSettings()">
+      <option value="0">00:00</option><option value="1">01:00</option>
+      <option value="2">02:00</option><option value="3">03:00</option>
+      <option value="4">04:00</option><option value="5">05:00</option>
+      <option value="6">06:00</option><option value="7">07:00</option>
+      <option value="8">08:00</option><option value="9">09:00</option>
+      <option value="10">10:00</option><option value="11">11:00</option>
     </select>
     <label>Interval (hours)</label>
-    <select id="set-feed-interval" onchange="saveSettings()">
-      <option value="3">Every 3 hours</option>
+    <select id="set-feed-interval-a" onchange="saveSettings()">
       <option value="2">Every 2 hours</option>
+      <option value="3">Every 3 hours</option>
       <option value="4">Every 4 hours</option>
     </select>
-    <div id="next-feed-display" style="margin-top:10px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
+    <div id="next-feed-display-a" style="margin-top:8px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--sky)">
+    <h2 style="color:var(--deep-sky)">⏰ Twin B Feed Schedule — 🏥❄️ Hosp Frozen</h2>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.9rem;font-weight:500;color:var(--text-dark);cursor:pointer;margin-top:0">
+      <input type="checkbox" id="set-autofeed-b" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
+      Enable auto-deduction for Twin B
+    </label>
+    <label style="margin-top:12px">First feed time (SA)</label>
+    <select id="set-feed-start-b" onchange="saveSettings()">
+      <option value="0">00:00</option><option value="1">01:00</option>
+      <option value="2">02:00</option><option value="3">03:00</option>
+      <option value="4">04:00</option><option value="5">05:00</option>
+      <option value="6">06:00</option><option value="7">07:00</option>
+      <option value="8">08:00</option><option value="9">09:00</option>
+      <option value="10">10:00</option><option value="11">11:00</option>
+    </select>
+    <label>Interval (hours)</label>
+    <select id="set-feed-interval-b" onchange="saveSettings()">
+      <option value="2">Every 2 hours</option>
+      <option value="3">Every 3 hours</option>
+      <option value="4">Every 4 hours</option>
+    </select>
+    <div id="next-feed-display-b" style="margin-top:8px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
   </div>
 
   <div class="card" style="border-left: 4px solid var(--sky)">
@@ -781,7 +805,8 @@ let state = {
   settings: {
     twinA: { feedSize: 60, feedsPerDay: 8 },
     twinB: { feedSize: 60, feedsPerDay: 8 },
-    autoFeed: { enabled: true, startHour: 2, intervalHours: 3 }
+    autoFeedA: { enabled: true,  startHour: 2, intervalHours: 3 },
+    autoFeedB: { enabled: true,  startHour: 2, intervalHours: 3 }
   }
 };
 
@@ -1686,11 +1711,15 @@ function saveSettings() {
   if (fdA) state.settings.twinA.feedsPerDay = fdA;
   if (fsB) state.settings.twinB.feedSize = fsB;
   if (fdB) state.settings.twinB.feedsPerDay = fdB;
-  // Auto-feed settings
-  if (!state.settings.autoFeed) state.settings.autoFeed = { enabled: true, startHour: 2, intervalHours: 3 };
-  state.settings.autoFeed.enabled      = document.getElementById('set-autofeed').checked;
-  state.settings.autoFeed.startHour    = parseInt(document.getElementById('set-feed-start').value);
-  state.settings.autoFeed.intervalHours = parseInt(document.getElementById('set-feed-interval').value);
+  // Auto-feed settings per twin
+  if (!state.settings.autoFeedA) state.settings.autoFeedA = { enabled: true, startHour: 2, intervalHours: 3 };
+  if (!state.settings.autoFeedB) state.settings.autoFeedB = { enabled: true, startHour: 2, intervalHours: 3 };
+  state.settings.autoFeedA.enabled       = document.getElementById('set-autofeed-a').checked;
+  state.settings.autoFeedA.startHour     = parseInt(document.getElementById('set-feed-start-a').value);
+  state.settings.autoFeedA.intervalHours = parseInt(document.getElementById('set-feed-interval-a').value);
+  state.settings.autoFeedB.enabled       = document.getElementById('set-autofeed-b').checked;
+  state.settings.autoFeedB.startHour     = parseInt(document.getElementById('set-feed-start-b').value);
+  state.settings.autoFeedB.intervalHours = parseInt(document.getElementById('set-feed-interval-b').value);
   saveState(); updateDashboard(); updateNextFeedDisplay();
   const bufA = (fsA || state.settings.twinA.feedSize) * 2;
   const bufB = (fsB || state.settings.twinB.feedSize) * 2;
@@ -1705,10 +1734,14 @@ function loadSettings() {
   document.getElementById('set-feeds-day-b').value = state.settings.twinB.feedsPerDay || '';
   document.getElementById('set-buffer-a').textContent = (state.settings.twinA.feedSize * 2 || '—') + (state.settings.twinA.feedSize ? 'ml' : '');
   document.getElementById('set-buffer-b').textContent = (state.settings.twinB.feedSize * 2 || '—') + (state.settings.twinB.feedSize ? 'ml' : '');
-  const af = state.settings.autoFeed || { enabled: true, startHour: 2, intervalHours: 3 };
-  document.getElementById('set-autofeed').checked = af.enabled !== false;
-  document.getElementById('set-feed-start').value = String(af.startHour || 2);
-  document.getElementById('set-feed-interval').value = String(af.intervalHours || 3);
+  const afA = state.settings.autoFeedA || { enabled: true, startHour: 2, intervalHours: 3 };
+  const afB = state.settings.autoFeedB || { enabled: true, startHour: 2, intervalHours: 3 };
+  document.getElementById('set-autofeed-a').checked = afA.enabled !== false;
+  document.getElementById('set-feed-start-a').value = String(afA.startHour || 2);
+  document.getElementById('set-feed-interval-a').value = String(afA.intervalHours || 3);
+  document.getElementById('set-autofeed-b').checked = afB.enabled !== false;
+  document.getElementById('set-feed-start-b').value = String(afB.startHour || 2);
+  document.getElementById('set-feed-interval-b').value = String(afB.intervalHours || 3);
   updateNextFeedDisplay();
 }
 
@@ -1970,96 +2003,90 @@ function getFeedSlots(startHour, intervalHours, fromTimeArg, toTimeArg) {
 }
 
 function getLastFeedTime() {
-  // Find the most recent feed or breastfeed entry time
+  // Generic last feed — used for backwards compat
   const feeds = state.log.filter(e => e.type === 'feed' || e.type === 'breastfeed');
   if (!feeds.length) return null;
-  const latest = feeds.reduce((a, b) => new Date(a.time) > new Date(b.time) ? a : b);
-  return new Date(latest.time);
+  return new Date(feeds.reduce((a,b) => new Date(a.time) > new Date(b.time) ? a : b).time);
 }
 
-function applyAutoFeeds() {
-  const af = state.settings.autoFeed || { enabled: true, startHour: 2, intervalHours: 3 };
-  if (!af.enabled) return;
+function getLastFeedTimeForTwin(twin) {
+  const feeds = state.log.filter(e =>
+    (e.type === 'feed' || e.type === 'breastfeed') &&
+    (e.twin === twin || e.twin === 'Both')
+  );
+  if (!feeds.length) return null;
+  return new Date(feeds.reduce((a,b) => new Date(a.time) > new Date(b.time) ? a : b).time);
+}
 
-  const tA = state.settings.twinA;
-  const tB = state.settings.twinB;
-  if (!tA.feedSize || !tB.feedSize) return;
+function midnightSAUtc() {
+  const c = utcMsToSAComponents(Date.now());
+  return new Date(Date.UTC(c.year, c.month, c.date, 0, 0, 0) - SA_OFFSET_MS);
+}
 
-  const lastFeed = getLastFeedTime();
-  const now = new Date(); // UTC — slots compared in SA time
+function applyAutoFeedsForTwin(twin, af, feedSize, fromStock, stockKey) {
+  if (!af.enabled || !feedSize) return { deducted: 0, details: [] };
 
-  // If no feeds recorded yet, start from midnight SA today to avoid huge deductions
-  // fromTime: last feed UTC time, or start of SA today if no feeds yet
-  let fromTime;
-  if (lastFeed) {
-    fromTime = lastFeed; // already a UTC Date from new Date(entry.time)
-  } else {
-    // Midnight SA today in UTC
-    const c = utcMsToSAComponents(Date.now());
-    fromTime = new Date(Date.UTC(c.year, c.month, c.date, 0, 0, 0) - SA_OFFSET_MS);
-  }
-
+  const lastFeed = getLastFeedTimeForTwin(twin);
+  const fromTime = lastFeed || midnightSAUtc();
   const slots = getFeedSlots(af.startHour, af.intervalHours, fromTime, new Date());
-  if (!slots.length) return;
+  if (!slots.length) return { deducted: 0, details: [] };
 
-  const st = getStock();
   let deducted = 0;
   const details = [];
 
   for (const slotUtcMs of slots) {
-    // Check enough stock for both twins
-    if (tA.feedSize > getStock().hospFridge && tB.feedSize > getStock().hospFrozen) break;
+    if (feedSize > getStock()[stockKey]) break; // out of stock
 
-    // slotUtcMs is already UTC — convert to ISO directly
     const slotISO = new Date(slotUtcMs).toISOString();
 
-    // Skip if already fed within 45 min of this slot
+    // Skip if this twin already has a feed/breastfeed within 45 min of slot
     const alreadyFed = state.log.some(e =>
       (e.type === 'feed' || e.type === 'breastfeed') &&
+      (e.twin === twin || e.twin === 'Both') &&
       Math.abs(new Date(e.time).getTime() - slotUtcMs) < 45 * 60000
     );
     if (alreadyFed) continue;
 
-    // Deduct Twin A from hospFridge
-    if (tA.feedSize <= getStock().hospFridge) {
+    if (feedSize <= getStock()[stockKey]) {
       state.log.push({
-        id: slotUtcMs,
+        id: slotUtcMs + (twin === 'B' ? 1 : 0),
         type: 'feed', time: slotISO,
-        twin: 'A', amount: tA.feedSize, from: 'hospFridge',
+        twin, amount: feedSize, from: fromStock,
         notes: 'Auto-feed'
       });
+      deducted++;
+      const sc = utcMsToSAComponents(slotUtcMs);
+      details.push(pad2(sc.hours) + ':' + pad2(sc.minutes));
     }
-    // Deduct Twin B from hospFrozen
-    if (tB.feedSize <= getStock().hospFrozen) {
-      state.log.push({
-        id: slotUtcMs + 1,
-        type: 'feed', time: slotISO,
-        twin: 'B', amount: tB.feedSize, from: 'hospFrozen',
-        notes: 'Auto-feed'
-      });
-    }
+  }
+  return { deducted, details };
+}
 
-    deducted++;
-    const sc = utcMsToSAComponents(slotUtcMs);
-    details.push(pad2(sc.hours) + ':' + pad2(sc.minutes));
+function applyAutoFeeds() {
+  const s = state.settings;
+  const afA = s.autoFeedA || { enabled: true, startHour: 2, intervalHours: 3 };
+  const afB = s.autoFeedB || { enabled: true, startHour: 2, intervalHours: 3 };
+  // Migrate old shared autoFeed setting
+  if (s.autoFeed && !s.autoFeedA) {
+    s.autoFeedA = Object.assign({}, s.autoFeed);
+    s.autoFeedB = Object.assign({}, s.autoFeed);
   }
 
-  if (deducted > 0) {
-    saveState();
-    updateDashboard();
-    renderLog();
-    updateSummary();
+  const resA = applyAutoFeedsForTwin('A', afA, s.twinA.feedSize, 'hospFridge', 'hospFridge');
+  const resB = applyAutoFeedsForTwin('B', afB, s.twinB.feedSize, 'hospFrozen', 'hospFrozen');
 
-    // Show banner
+  const totalDeducted = resA.deducted + resB.deducted;
+  if (totalDeducted > 0) {
+    saveState(); updateDashboard(); renderLog(); updateSummary();
+    const parts = [];
+    if (resA.deducted) parts.push('Twin A: ' + resA.details.join(', '));
+    if (resB.deducted) parts.push('Twin B: ' + resB.details.join(', '));
     const banner = document.getElementById('autoFeedBanner');
-    const detail = document.getElementById('autoFeedDetail');
+    document.getElementById('autoFeedDetail').textContent =
+      totalDeducted + ' feed(s) auto-deducted — ' + parts.join(' · ');
     banner.style.display = 'block';
-    detail.textContent = deducted + ' feed round' + (deducted>1?'s':'') +
-      ' auto-deducted (' + details.join(', ') + ') — Twin A from 🏥🧊, Twin B from 🏥❄️';
-    setTimeout(() => banner.style.display = 'none', 8000);
+    setTimeout(() => banner.style.display = 'none', 10000);
   }
-
-  // Update next feed display
   updateNextFeedDisplay();
 }
 
