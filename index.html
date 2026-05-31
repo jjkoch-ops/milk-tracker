@@ -951,10 +951,23 @@ function setFeedTwin(t) {
   feedTwin = t;
   ['A','B','Both'].forEach(x => document.getElementById('feed-'+x.toLowerCase()).className = 'toggle-btn');
   document.getElementById('feed-'+t.toLowerCase()).classList.add('active-fridge');
-  // Show auto-source info
+
   const infoBox = document.getElementById('feed-source-info');
   const infoText = document.getElementById('feed-source-text');
   const isOverride = document.getElementById('feed-override-chk').checked;
+  const isBreast = feedType === 'breast';
+
+  // Breastfeed mode — hide stock source, just confirm which twin is breastfeeding
+  if (isBreast) {
+    infoBox.style.display = 'block';
+    infoBox.style.background = '#fce8f4';
+    infoBox.style.borderColor = '#d4a0c0';
+    const label = t === 'Both' ? 'Both twins' : 'Twin ' + t;
+    infoText.innerHTML = '🤱 <strong>' + label + '</strong> — breastfeeding, no stock deducted';
+    return;
+  }
+
+  // Bottle mode — show stock source
   if (!isOverride) {
     if (t === 'A') {
       infoBox.style.display = 'block';
@@ -1415,13 +1428,12 @@ function deleteEntry(id) {
 let _editingId = null;
 
 function editPumpTime(id) {
-  const entry = state.log.find(e => e.id === id);
-  if (!entry) return;
-  _editingId = id;
-  // Convert stored UTC ISO to SA datetime-local string
+  // Use loose comparison — IDs may be number or string depending on source
+  const entry = state.log.find(e => String(e.id) === String(id));
+  if (!entry) { toast('Could not find entry'); return; }
+  _editingId = String(id);
   document.getElementById('edit-time-input').value = toSADatetimeLocal(new Date(entry.time));
-  const modal = document.getElementById('edit-modal');
-  modal.style.display = 'flex';
+  document.getElementById('edit-modal').style.display = 'flex';
 }
 
 function closeEditModal() {
@@ -1430,12 +1442,13 @@ function closeEditModal() {
 }
 
 function saveEditTime() {
-  if (!_editingId) return;
+  if (!_editingId) { toast('No entry selected'); return; }
   const newTimeStr = document.getElementById('edit-time-input').value;
   if (!newTimeStr) { toast('Please select a time'); return; }
   const newISO = datetimeLocalToISO(newTimeStr);
-  const idx = state.log.findIndex(e => e.id === _editingId);
-  if (idx === -1) return;
+  // Match by string ID to handle number/string mismatch
+  const idx = state.log.findIndex(e => String(e.id) === String(_editingId));
+  if (idx === -1) { toast('Entry not found'); closeEditModal(); return; }
   state.log[idx] = Object.assign({}, state.log[idx], { time: newISO });
   saveState(); updateDashboard(); renderLog(); updateSummary();
   closeEditModal();
