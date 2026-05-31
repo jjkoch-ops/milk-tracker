@@ -1,1 +1,2210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Milk Tracker — Twins</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+  :root {
+    --cream: #fdf6ee;
+    --warm-white: #fffbf5;
+    --blush: #f5c6c6;
+    --rose: #e8788a;
+    --deep-rose: #c45067;
+    --gold: #d4a853;
+    --soft-gold: #f0dca8;
+    --sage: #7fa688;
+    --deep-sage: #4d7a59;
+    --sky: #7bb3cc;
+    --deep-sky: #3d7fa0;
+    --lavender: #b0a0cc;
+    --text-dark: #2d2020;
+    --text-mid: #6b4c4c;
+    --text-light: #a08080;
+    --shadow: rgba(120,60,60,0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    padding-bottom: 100px;
+  }
+
+  header {
+    background: linear-gradient(135deg, #fce8e8 0%, #fdf0e0 50%, #e8f0f8 100%);
+    padding: 24px 20px 16px;
+    text-align: center;
+    border-bottom: 1px solid var(--soft-gold);
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '🤱';
+    position: absolute; top: 10px; left: 16px; font-size: 28px; opacity: 0.4;
+  }
+  header::after {
+    content: '👶👶';
+    position: absolute; top: 12px; right: 14px; font-size: 22px; opacity: 0.4;
+  }
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.8rem;
+    color: var(--deep-rose);
+    letter-spacing: -0.5px;
+  }
+  header p {
+    font-size: 0.8rem;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+
+  /* Stock Alert Banner */
+  #stockAlert {
+    margin: 12px 16px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  #stockAlert.ok { background: #d4f0dc; color: #1e6b35; border: 1px solid #8acca0; display: block; }
+  #stockAlert.warn { background: #fff3d4; color: #8a6000; border: 1px solid #f0c855; display: block; }
+  #stockAlert.danger { background: #fde8e8; color: #8a0000; border: 1px solid #e88888; display: block; }
+
+  /* Nav tabs */
+  nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--warm-white);
+    border-top: 1px solid var(--soft-gold);
+    display: flex;
+    z-index: 100;
+    box-shadow: 0 -4px 20px var(--shadow);
+  }
+  nav button {
+    flex: 1;
+    padding: 8px 2px 10px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.58rem;
+    font-weight: 500;
+    color: var(--text-light);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    transition: color 0.2s;
+  }
+  nav button span.icon { font-size: 1.2rem; }
+  nav button.active { color: var(--deep-rose); }
+  nav button.active span.icon { transform: scale(1.15); }
+
+  /* Pages */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Cards */
+  .card {
+    background: var(--warm-white);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 12px var(--shadow);
+    border: 1px solid rgba(212,168,83,0.2);
+  }
+  .card h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--deep-rose);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* Summary tiles */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .tile {
+    background: var(--warm-white);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    box-shadow: 0 2px 8px var(--shadow);
+    border: 1px solid rgba(212,168,83,0.2);
+  }
+  .tile .val { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--deep-rose); }
+  .tile .lbl { font-size: 0.7rem; color: var(--text-mid); margin-top: 2px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .tile.sage .val { color: var(--deep-sage); }
+  .tile.sky .val { color: var(--deep-sky); }
+  .tile.gold .val { color: #9a7010; }
+
+  /* Form elements */
+  label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-mid); margin-bottom: 4px; margin-top: 12px; text-transform: uppercase; letter-spacing: 0.4px; }
+  label:first-child { margin-top: 0; }
+  input[type=number], input[type=text], input[type=datetime-local], select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--soft-gold);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    background: var(--cream);
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input:focus, select:focus { border-color: var(--rose); }
+
+  /* Breast inputs side by side */
+  .breast-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .breast-box { text-align: center; }
+  .breast-box label { color: var(--deep-rose); }
+  .total-display {
+    text-align: center;
+    padding: 10px;
+    background: linear-gradient(135deg, #fce8e8, #fff3d4);
+    border-radius: 10px;
+    margin-top: 10px;
+  }
+  .total-display span { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--deep-rose); }
+  .total-display small { display: block; font-size: 0.75rem; color: var(--text-mid); }
+
+  /* Toggle buttons */
+  .toggle-group { display: flex; gap: 8px; margin-top: 4px; }
+  .toggle-btn {
+    flex: 1; padding: 10px; border: 1.5px solid var(--soft-gold);
+    border-radius: 10px; background: var(--cream); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+    color: var(--text-mid); transition: all 0.2s;
+  }
+  .toggle-btn.active-freeze { background: #ddeeff; border-color: var(--sky); color: var(--deep-sky); }
+  .toggle-btn.active-fridge { background: #eefff4; border-color: var(--sage); color: var(--deep-sage); }
+  .toggle-btn.active-home { background: #eefff4; border-color: var(--sage); color: var(--deep-sage); }
+  .toggle-btn.active-hospital { background: #ddeeff; border-color: var(--sky); color: var(--deep-sky); }
+
+  /* Primary button */
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--rose), var(--deep-rose));
+    color: white; border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600;
+    cursor: pointer; margin-top: 14px;
+    box-shadow: 0 4px 14px rgba(196,80,103,0.35);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(196,80,103,0.25); }
+  .btn-secondary {
+    width: 100%; padding: 11px;
+    background: var(--cream); color: var(--text-mid);
+    border: 1.5px solid var(--soft-gold); border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; margin-top: 8px; transition: background 0.2s;
+  }
+  .btn-secondary:hover { background: var(--soft-gold); }
+
+  /* Log list */
+  .log-item {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--warm-white);
+    border: 1px solid rgba(212,168,83,0.2);
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .log-item .log-main { flex: 1; }
+  .log-item .log-amount { font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--deep-rose); }
+  .log-item .log-meta { font-size: 0.72rem; color: var(--text-light); margin-top: 2px; }
+  .log-item .log-badge {
+    font-size: 0.65rem; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .badge-freeze { background: #ddeeff; color: var(--deep-sky); }
+  .badge-fridge { background: #eefff4; color: var(--deep-sage); }
+  .badge-feed { background: #fce8e8; color: var(--deep-rose); }
+  .badge-thaw { background: #fff3d4; color: #8a6000; }
+  .badge-discard { background: #fde8e8; color: #8a0000; border: 1px solid #e88888; }
+  .badge-adjust-up { background: #eefff4; color: var(--deep-sage); }
+  .badge-adjust-down { background: #fff3d4; color: #8a6000; }
+  .badge-stockcount { background: #ede8f8; color: #5a3d9a; }
+  .del-btn { background: none; border: none; cursor: pointer; color: var(--text-light); font-size: 1rem; padding: 2px 6px; }
+
+  /* Stock section */
+  .stock-section { margin-bottom: 6px; }
+  .stock-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-mid); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+  .stock-bar-bg { background: #ede8e0; border-radius: 8px; height: 12px; overflow: hidden; margin-bottom: 3px; }
+  .stock-bar-fill { height: 100%; border-radius: 8px; transition: width 0.5s ease; }
+  .fill-sage { background: linear-gradient(90deg, var(--sage), var(--deep-sage)); }
+  .fill-sky { background: linear-gradient(90deg, var(--sky), var(--deep-sky)); }
+  .fill-rose { background: linear-gradient(90deg, var(--blush), var(--rose)); }
+
+  /* Feeds needed */
+  .feed-need {
+    background: linear-gradient(135deg, #fce8e8, #fff3d4);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(212,168,83,0.3);
+  }
+  .feed-need .fn-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-mid); letter-spacing: 0.4px; }
+  .feed-need .fn-val { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--deep-rose); }
+  .feed-need .fn-sub { font-size: 0.75rem; color: var(--text-mid); }
+
+  .section-title { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-mid); margin: 16px 0 8px; }
+
+  .filter-row { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .filter-chip {
+    padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--soft-gold);
+    background: var(--cream); font-size: 0.75rem; font-weight: 500; cursor: pointer; color: var(--text-mid);
+    transition: all 0.2s;
+  }
+  .filter-chip.active { background: var(--rose); color: white; border-color: var(--rose); }
+
+  .empty-state { text-align: center; padding: 32px 16px; color: var(--text-light); }
+  .empty-state span { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+
+  .success-toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--deep-sage); color: white;
+    padding: 10px 22px; border-radius: 30px; font-size: 0.85rem; font-weight: 500;
+    opacity: 0; transition: all 0.3s; z-index: 200; white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .success-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .info-row { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-mid); padding: 4px 0; border-bottom: 1px dashed rgba(160,128,128,0.2); }
+  .info-row:last-child { border-bottom: none; }
+
+  input[type=range] { width: 100%; accent-color: var(--rose); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Milk Tracker</h1>
+  <p>Twins feeding & stock management</p>
+  <div id="sync-indicator" style="display:none;position:absolute;top:12px;right:50px;font-size:0.7rem;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,0.7);color:var(--text-mid)">
+    <span id="sync-dot">⏳</span> <span id="sync-label">Syncing...</span>
+  </div>
+</header>
+
+<div id="stockAlert"></div>
+<div id="autoFeedBanner" style="display:none;margin:0 16px 4px;padding:10px 16px;border-radius:12px;background:#e8f4ff;border:1px solid var(--sky);font-size:0.82rem;color:var(--deep-sky)">
+  <strong>🍼 Auto-feeds applied:</strong> <span id="autoFeedDetail"></span>
+</div>
+
+<!-- HOME PAGE -->
+<div class="page active" id="page-home">
+
+  <div class="tiles">
+    <div class="tile sage">
+      <div class="val" id="tile-hospFridge">0</div>
+      <div class="lbl">🏥🧊 Hosp Fridge (ml)</div>
+    </div>
+    <div class="tile sky">
+      <div class="val" id="tile-hospFrozen">0</div>
+      <div class="lbl">🏥❄️ Hosp Frozen (ml)</div>
+    </div>
+    <div class="tile sky">
+      <div class="val" id="tile-homeFrozen">0</div>
+      <div class="lbl">🏠❄️ Home Frozen (ml)</div>
+    </div>
+    <div class="tile gold">
+      <div class="val" id="tile-today">0</div>
+      <div class="lbl">🍼 Pumped Today (ml)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>📊 Stock Status</h2>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>🏥🧊 Hospital Fridge <small style="font-weight:400;opacity:0.7">(Twin A · fresh)</small></span>
+        <span id="hospFridge-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sage" id="bar-hospFridge" style="width:0%"></div></div>
+    </div>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>🏥❄️ Hospital Frozen <small style="font-weight:400;opacity:0.7">(Twin B · thawed)</small></span>
+        <span id="hospFrozen-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-sky" id="bar-hospFrozen" style="width:0%"></div></div>
+    </div>
+    <div class="stock-section">
+      <div class="stock-label">
+        <span>🏠❄️ Home Frozen <small style="font-weight:400;opacity:0.7">(reserve)</small></span>
+        <span id="homeFrozen-ml-label">0 ml</span>
+      </div>
+      <div class="stock-bar-bg"><div class="stock-bar-fill fill-rose" id="bar-homeFrozen" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <div class="feed-need">
+    <div class="fn-title">🍼 Feeds Buffer Status — Twins Need 2 Feeds Ahead</div>
+    <div class="fn-val" id="fn-buffer">—</div>
+    <div class="fn-sub" id="fn-sub">Set feed size & frequency in Settings to see buffer</div>
+  </div>
+
+  <div class="card">
+    <h2>⚡ Quick Use from Stock</h2>
+    <label>Location</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn active-fridge" id="use-loc-hospFridge" onclick="setUseLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="use-loc-hospFrozen" onclick="setUseLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="use-loc-homeFrozen" onclick="setUseLoc('homeFrozen')">🏠❄️ Home Frozen</button>
+    </div>
+    <label>Amount Used (ml)</label>
+    <input type="number" id="use-amount" placeholder="e.g. 60" min="0">
+    <label>Note (optional)</label>
+    <input type="text" id="use-note" placeholder="e.g. Twin A morning feed">
+    <button class="btn-primary" onclick="useStock()">Record Use</button>
+  </div>
+
+</div>
+
+<!-- PUMP PAGE -->
+<div class="page" id="page-pump">
+  <div class="card">
+    <h2>🤱 New Pump Session</h2>
+    <label>Date & Time <span style="font-size:0.7rem;font-weight:400;color:var(--text-light)">(SA time)</span></label>
+    <input type="datetime-local" id="pump-time">
+    <p style="font-size:0.72rem;color:var(--text-light);margin-top:3px">Tap to edit — defaults to current SA time</p>
+    <div class="breast-row" style="margin-top:12px">
+      <div class="breast-box">
+        <label>Left Breast (ml)</label>
+        <input type="number" id="pump-left" placeholder="0" min="0" oninput="updatePumpTotal()">
+      </div>
+      <div class="breast-box">
+        <label>Right Breast (ml)</label>
+        <input type="number" id="pump-right" placeholder="0" min="0" oninput="updatePumpTotal()">
+      </div>
+    </div>
+    <div class="total-display">
+      <small>Session Total</small>
+      <span id="pump-total">0 ml</span>
+    </div>
+    <label style="margin-top:14px">Store This Milk In</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="dest-hospFridge" onclick="setDest('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="dest-hospFrozen" onclick="setDest('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="dest-homeFrozen" onclick="setDest('homeFrozen')">🏠❄️ Home Frozen</button>
+    </div>
+    <label>Notes (optional)</label>
+    <input type="text" id="pump-notes" placeholder="e.g. Morning session, good output">
+    <button class="btn-primary" onclick="savePump()">💾 Save Session</button>
+  </div>
+</div>
+
+<!-- STOCK PAGE -->
+<div class="page" id="page-stock">
+  <div class="card">
+    <h2>🔄 Move / Transfer Stock</h2>
+    <label>Action</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="mv-home-to-hospfrozen" onclick="setMvAction('home-to-hospfrozen')">🏠→🏥❄️ Home→Hosp Frozen</button>
+      <button class="toggle-btn" id="mv-hospfrozen-to-hospfridge" onclick="setMvAction('hospfrozen-to-hospfridge')">🏥❄️→🏥🧊 Thaw for Hosp Fridge</button>
+      <button class="toggle-btn" id="mv-hospfridge-to-hospfrozen" onclick="setMvAction('hospfridge-to-hospfrozen')">🏥🧊→🏥❄️ Fridge→Freeze Hosp</button>
+    </div>
+    <label>Amount (ml)</label>
+    <input type="number" id="mv-amount" placeholder="e.g. 120" min="0">
+    <label>Notes (optional)</label>
+    <input type="text" id="mv-notes" placeholder="e.g. Oldest batch first">
+    <button class="btn-primary" onclick="saveMoveStock()">✅ Record Movement</button>
+  </div>
+
+  <div class="card" style="border-left:4px solid #b08ac8">
+    <h2 style="color:#5a3d9a">📦 Stock Take — Set Actual Count</h2>
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
+      Enter the actual ml you can see right now. The app records the difference as an adjustment.
+    </p>
+    <label>Location</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="sc-loc-hospFridge" onclick="setScLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="sc-loc-hospFrozen" onclick="setScLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="sc-loc-homeFrozen" onclick="setScLoc('homeFrozen')">🏠❄️ Home Frozen</button>
+    </div>
+    <div id="sc-current" style="font-size:0.8rem;color:var(--text-mid);margin-top:8px;padding:6px 10px;background:var(--cream);border-radius:8px;display:none">
+      Calculated stock: <strong id="sc-current-val">—</strong>
+    </div>
+    <label>Actual Count (ml)</label>
+    <input type="number" id="sc-actual" placeholder="e.g. 350" min="0" oninput="updateScDiff()">
+    <div id="sc-diff" style="font-size:0.82rem;margin-top:6px;padding:7px 10px;border-radius:8px;display:none"></div>
+    <label>Notes (optional)</label>
+    <input type="text" id="sc-notes" placeholder="e.g. Weekly stock take">
+    <button class="btn-primary" style="background:linear-gradient(135deg,#9a7acc,#5a3d9a);box-shadow:0 4px 14px rgba(90,61,154,0.3)" onclick="saveStockCount()">📦 Save Stock Count</button>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--gold)">
+    <h2 style="color:#7a5500">⚖️ Manual Adjustment</h2>
+    <label>Location</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="adj-loc-hospFridge" onclick="setAdjLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="adj-loc-hospFrozen" onclick="setAdjLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="adj-loc-homeFrozen" onclick="setAdjLoc('homeFrozen')">🏠❄️ Home Frozen</button>
+    </div>
+    <label>Direction</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="adj-dir-add" onclick="setAdjDir('add')">➕ Add</button>
+      <button class="toggle-btn" id="adj-dir-sub" onclick="setAdjDir('sub')">➖ Subtract</button>
+    </div>
+    <label>Amount (ml)</label>
+    <input type="number" id="adj-amount" placeholder="e.g. 60" min="0">
+    <label>Reason</label>
+    <input type="text" id="adj-reason" placeholder="e.g. Found extra bag, miscounted">
+    <button class="btn-primary" style="background:linear-gradient(135deg,var(--gold),#9a7010);box-shadow:0 4px 14px rgba(154,112,16,0.3)" onclick="saveAdjustment()">⚖️ Save Adjustment</button>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--rose)">
+    <h2 style="color:var(--deep-rose)">🗑️ Discard Stock</h2>
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-bottom:10px;line-height:1.5">
+      Log milk that must be thrown away. This creates a permanent discard record.
+    </p>
+    <label>Location</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="disc-loc-hospFridge" onclick="setDiscLoc('hospFridge')">🏥🧊 Hosp Fridge</button>
+      <button class="toggle-btn" id="disc-loc-hospFrozen" onclick="setDiscLoc('hospFrozen')">🏥❄️ Hosp Frozen</button>
+      <button class="toggle-btn" id="disc-loc-homeFrozen" onclick="setDiscLoc('homeFrozen')">🏠❄️ Home Frozen</button>
+    </div>
+    <label>Amount to Discard (ml)</label>
+    <input type="number" id="disc-amount" placeholder="e.g. 120" min="0">
+    <label>Reason</label>
+    <div class="toggle-group" style="flex-wrap:wrap">
+      <button class="toggle-btn" id="disc-r-expired" onclick="setDiscReason('Expired')">⏰ Expired</button>
+      <button class="toggle-btn" id="disc-r-contaminated" onclick="setDiscReason('Contaminated')">⚠️ Contaminated</button>
+      <button class="toggle-btn" id="disc-r-freezer" onclick="setDiscReason('Freezer burn')">🥶 Freezer burn</button>
+      <button class="toggle-btn" id="disc-r-other" onclick="setDiscReason('Other')">📝 Other</button>
+    </div>
+    <label>Additional Notes (optional)</label>
+    <input type="text" id="disc-notes" placeholder="e.g. Left out too long">
+    <button class="btn-primary" style="background:linear-gradient(135deg,var(--blush),var(--deep-rose));box-shadow:0 4px 14px rgba(196,80,103,0.35)" onclick="saveDiscard()">🗑️ Record Discard</button>
+  </div>
+
+</div>
+
+<!-- FEED PAGE -->
+<div class="page" id="page-feed">
+  <div class="card">
+    <h2>🍼 Record Feeding</h2>
+
+    <!-- Feed type toggle -->
+    <label>Feed Type</label>
+    <div class="toggle-group">
+      <button class="toggle-btn active-fridge" id="feedtype-bottle" onclick="setFeedType('bottle')">🍼 Bottle</button>
+      <button class="toggle-btn" id="feedtype-breast" onclick="setFeedType('breast')">🤱 Breastfeed</button>
+    </div>
+
+    <!-- Breastfeed info box -->
+    <div id="breast-info" style="display:none;margin-top:8px;padding:9px 12px;border-radius:10px;background:#fce8f4;border:1.5px solid #d4a0c0;font-size:0.82rem;color:#7a2050">
+      🤱 No stock deducted — slot marked as done so auto-feed skips it
+    </div>
+
+    <!-- Breastfeed details (shown only in breast mode) -->
+    <div id="breast-details" style="display:none">
+      <label style="margin-top:12px">Breast Used</label>
+      <div class="toggle-group">
+        <button class="toggle-btn" id="breast-left"  onclick="setBreast('left')">◀️ Left</button>
+        <button class="toggle-btn" id="breast-right" onclick="setBreast('right')">Right ▶️</button>
+        <button class="toggle-btn" id="breast-both"  onclick="setBreast('both')">◀️▶️ Both</button>
+      </div>
+      <label style="margin-top:12px">Duration (minutes per breast)</label>
+      <input type="number" id="breast-duration" placeholder="e.g. 15" min="1" max="60">
+    </div>
+
+    <label style="margin-top:12px">Twin</label>
+    <div class="toggle-group">
+      <button class="toggle-btn" id="feed-a" onclick="setFeedTwin('A')">👶 Twin A</button>
+      <button class="toggle-btn" id="feed-b" onclick="setFeedTwin('B')">👶 Twin B</button>
+      <button class="toggle-btn" id="feed-both" onclick="setFeedTwin('Both')">👶👶 Both</button>
+    </div>
+
+    <!-- Auto source indicator (bottle only) -->
+    <div id="feed-source-info" style="margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--cream);border:1.5px solid var(--soft-gold);font-size:0.82rem;color:var(--text-mid);display:none">
+      <span id="feed-source-text"></span>
+    </div>
+
+    <!-- Amount (bottle only) -->
+    <div id="feed-amount-section">
+      <label style="margin-top:12px">Amount (ml per twin)</label>
+      <input type="number" id="feed-amount" placeholder="e.g. 60" min="0" oninput="updateFeedTotal()">
+      <div id="feed-total-row" style="font-size:0.8rem;color:var(--text-mid);margin-top:4px;text-align:right"></div>
+    </div>
+
+    <!-- Override option (bottle only) -->
+    <div id="feed-override-section" style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.82rem;font-weight:500;color:var(--text-mid);cursor:pointer">
+        <input type="checkbox" id="feed-override-chk" onchange="toggleFeedOverride()" style="width:auto;accent-color:var(--rose)">
+        Override stock source
+      </label>
+    </div>
+    <div id="feed-override-panel" style="display:none;margin-top:8px">
+      <label>Fed From</label>
+      <div class="toggle-group" style="flex-wrap:wrap">
+        <button class="toggle-btn" id="feed-from-hospFridge" onclick="setFeedFrom('hospFridge')">🏥🧊 Hosp Fridge</button>
+        <button class="toggle-btn" id="feed-from-hospFrozen" onclick="setFeedFrom('hospFrozen')">🏥❄️ Hosp Frozen</button>
+        <button class="toggle-btn" id="feed-from-homeFrozen" onclick="setFeedFrom('homeFrozen')">🏠❄️ Home Frozen</button>
+      </div>
+    </div>
+
+    <label>Notes (optional)</label>
+    <input type="text" id="feed-notes" placeholder="e.g. 10am feed">
+    <button class="btn-primary" onclick="saveFeed()">💾 Save Feed</button>
+  </div>
+</div>
+
+<!-- LOG PAGE -->
+<div class="page" id="page-log">
+  <div class="filter-row">
+    <button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-chip" onclick="setFilter('pump', this)">Pump</button>
+    <button class="filter-chip" onclick="setFilter('feed', this)">Feed</button>
+    <button class="filter-chip" onclick="setFilter('move', this)">Stock</button>
+    <button class="filter-chip" onclick="setFilter('discard', this)">Discards</button>
+  </div>
+  <div id="log-list"></div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+
+  <div class="card" style="border-left: 4px solid var(--sage)">
+    <h2 style="color:var(--deep-sage)">👶 Twin A — 🏥🧊 Hosp Fridge (fresh)</h2>
+    <label>Feed Size (ml)</label>
+    <input type="number" id="set-feed-size-a" placeholder="e.g. 60" min="1" oninput="saveSettings()" onblur="saveSettings()">
+    <label>Feeds per Day</label>
+    <input type="number" id="set-feeds-day-a" placeholder="e.g. 8" min="1" oninput="saveSettings()" onblur="saveSettings()">
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-a">— ml</strong> from 🏥🧊 Hosp Fridge
+    </p>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--sage)">
+    <h2 style="color:var(--deep-sage)">⏰ Twin A Feed Schedule — 🏥🧊 Hosp Fridge</h2>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.9rem;font-weight:500;color:var(--text-dark);cursor:pointer;margin-top:0">
+      <input type="checkbox" id="set-autofeed-a" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
+      Enable auto-deduction for Twin A
+    </label>
+    <label style="margin-top:12px">First feed time (SA)</label>
+    <select id="set-feed-start-a" onchange="saveSettings()">
+      <option value="0">00:00</option><option value="1">01:00</option>
+      <option value="2">02:00</option><option value="3">03:00</option>
+      <option value="4">04:00</option><option value="5">05:00</option>
+      <option value="6">06:00</option><option value="7">07:00</option>
+      <option value="8">08:00</option><option value="9">09:00</option>
+      <option value="10">10:00</option><option value="11">11:00</option>
+    </select>
+    <label>Interval (hours)</label>
+    <select id="set-feed-interval-a" onchange="saveSettings()">
+      <option value="2">Every 2 hours</option>
+      <option value="3">Every 3 hours</option>
+      <option value="4">Every 4 hours</option>
+    </select>
+    <div id="next-feed-display-a" style="margin-top:8px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--sky)">
+    <h2 style="color:var(--deep-sky)">⏰ Twin B Feed Schedule — 🏥❄️ Hosp Frozen</h2>
+    <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:0.9rem;font-weight:500;color:var(--text-dark);cursor:pointer;margin-top:0">
+      <input type="checkbox" id="set-autofeed-b" onchange="saveSettings()" style="width:auto;accent-color:var(--rose)">
+      Enable auto-deduction for Twin B
+    </label>
+    <label style="margin-top:12px">First feed time (SA)</label>
+    <select id="set-feed-start-b" onchange="saveSettings()">
+      <option value="0">00:00</option><option value="1">01:00</option>
+      <option value="2">02:00</option><option value="3">03:00</option>
+      <option value="4">04:00</option><option value="5">05:00</option>
+      <option value="6">06:00</option><option value="7">07:00</option>
+      <option value="8">08:00</option><option value="9">09:00</option>
+      <option value="10">10:00</option><option value="11">11:00</option>
+    </select>
+    <label>Interval (hours)</label>
+    <select id="set-feed-interval-b" onchange="saveSettings()">
+      <option value="2">Every 2 hours</option>
+      <option value="3">Every 3 hours</option>
+      <option value="4">Every 4 hours</option>
+    </select>
+    <div id="next-feed-display-b" style="margin-top:8px;padding:8px 12px;background:var(--cream);border-radius:8px;font-size:0.82rem;color:var(--text-mid)"></div>
+  </div>
+
+  <div class="card" style="border-left: 4px solid var(--sky)">
+    <h2 style="color:var(--deep-sky)">👶 Twin B — 🏥❄️ Hosp Frozen (thawed)</h2>
+    <label>Feed Size (ml)</label>
+    <input type="number" id="set-feed-size-b" placeholder="e.g. 60" min="1" oninput="saveSettings()" onblur="saveSettings()">
+    <label>Feeds per Day</label>
+    <input type="number" id="set-feeds-day-b" placeholder="e.g. 8" min="1" oninput="saveSettings()" onblur="saveSettings()">
+    <p style="font-size:0.78rem;color:var(--text-mid);margin-top:8px">
+      Buffer needed = 2 feeds × feed size = <strong id="set-buffer-b">— ml</strong> from 🏥❄️ Hosp Frozen
+    </p>
+  </div>
+
+  <div style="margin-bottom:14px">
+    <button class="btn-primary" onclick="saveSettingsManual()" id="save-settings-btn">💾 Save Settings</button>
+    <div id="save-settings-confirm" style="display:none;text-align:center;font-size:0.82rem;color:var(--deep-sage);margin-top:6px;font-weight:500">✅ Settings saved</div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Summary Today</h2>
+    <div id="summary-today"></div>
+  </div>
+
+  <div class="card" id="sync-card">
+    <h2>☁️ Google Sheets Sync</h2>
+    <div id="sync-status" style="font-size:0.8rem;padding:8px 12px;border-radius:8px;margin-bottom:10px;background:#f5f0e8;color:var(--text-mid)">
+      Not connected — paste your Apps Script URL below
+    </div>
+    <div id="sync-last" style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px;display:none"></div>
+    <label>Apps Script Web App URL</label>
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec" oninput="saveScriptUrl()">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn-secondary" style="flex:1" onclick="syncToSheet()">⬆️ Push to Sheet</button>
+      <button class="btn-secondary" style="flex:1" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
+    </div>
+    <button class="btn-primary" onclick="fullSync()" style="margin-top:8px">🔄 Full Sync (Pull + Push)</button>
+    <p style="font-size:0.72rem;color:var(--text-light);margin-top:8px;line-height:1.5">
+      Pull loads cloud data and merges with local (no duplicates). Push sends all local entries to the sheet.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>🗑️ Data</h2>
+    <button class="btn-secondary" onclick="exportCSV()">📥 Export CSV</button>
+    <button class="btn-secondary" style="color:#c00;border-color:#e88888;margin-top:8px" onclick="clearAll()">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="showPage('home', this)">
+    <span class="icon">🏠</span>Home
+  </button>
+  <button onclick="showPage('pump', this)">
+    <span class="icon">🤱</span>Pump
+  </button>
+  <button onclick="showPage('feed', this)">
+    <span class="icon">🍼</span>Feed
+  </button>
+  <button onclick="showPage('stock', this)">
+    <span class="icon">❄️</span>Stock
+  </button>
+  <button onclick="showPage('log', this)">
+    <span class="icon">📋</span>Log
+  </button>
+  <button onclick="showPage('settings', this)">
+    <span class="icon">⚙️</span>Settings
+  </button>
+</nav>
+
+<div class="success-toast" id="toast"></div>
+
+<!-- Convert Feed Type Modal -->
+<div id="convert-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--warm-white);border-radius:18px;padding:24px;margin:20px;width:calc(100% - 40px);max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+    <h3 style="font-family:'DM Serif Display',serif;color:var(--deep-rose);margin-bottom:4px" id="convert-modal-title">Convert Feed</h3>
+    <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:16px" id="convert-modal-desc"></p>
+    <!-- Breastfeed fields (shown when converting to breastfeed) -->
+    <div id="convert-breast-fields" style="display:none">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.4px">Breast Used</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="toggle-btn" id="cv-breast-left"  onclick="setCvBreast('left')"  style="flex:1">◀️ Left</button>
+        <button class="toggle-btn" id="cv-breast-right" onclick="setCvBreast('right')" style="flex:1">Right ▶️</button>
+        <button class="toggle-btn" id="cv-breast-both"  onclick="setCvBreast('both')"  style="flex:1">◀️▶️ Both</button>
+      </div>
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Duration (min per breast)</label>
+      <input type="number" id="cv-duration" placeholder="e.g. 15" min="1" max="60"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none;margin-bottom:10px">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Notes (optional)</label>
+      <input type="text" id="cv-notes" placeholder="e.g. good latch"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none">
+    </div>
+
+    <!-- Bottle fields (shown when converting to bottle) -->
+    <div id="convert-bottle-fields">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Amount (ml)</label>
+      <input type="number" id="convert-amount" placeholder="e.g. 60" min="0"
+        style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none;margin-bottom:10px">
+      <label style="display:block;font-size:0.8rem;font-weight:600;color:var(--text-mid);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.4px">Twin</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <button class="toggle-btn" id="cv-twin-a" onclick="setCvTwin('A')" style="flex:1">👶 Twin A</button>
+        <button class="toggle-btn" id="cv-twin-b" onclick="setCvTwin('B')" style="flex:1">👶 Twin B</button>
+        <button class="toggle-btn" id="cv-twin-both" onclick="setCvTwin('Both')" style="flex:1">👶👶 Both</button>
+      </div>
+      <div id="cv-source-info" style="font-size:0.78rem;color:var(--text-mid);padding:6px 10px;background:var(--cream);border-radius:8px;margin-bottom:10px"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button onclick="closeConvertModal()" style="flex:1;padding:11px;background:var(--cream);color:var(--text-mid);border:1.5px solid var(--soft-gold);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer">Cancel</button>
+      <button onclick="saveConvert()" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--rose),var(--deep-rose));color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer">Convert & Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Pump Time Modal -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;align-items:center;justify-content:center">
+  <div style="background:var(--warm-white);border-radius:18px;padding:24px;margin:20px;width:calc(100%-40px);max-width:400px;box-shadow:0 8px 32px rgba(0,0,0,0.3)">
+    <h3 style="font-family:'DM Serif Display',serif;color:var(--deep-rose);margin-bottom:4px">✏️ Edit Pump Time</h3>
+    <p style="font-size:0.78rem;color:var(--text-light);margin-bottom:16px">Time is in SA timezone (UTC+2)</p>
+    <input type="datetime-local" id="edit-time-input" style="width:100%;padding:11px 14px;border:1.5px solid var(--soft-gold);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:0.95rem;background:var(--cream);color:var(--text-dark);outline:none">
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button onclick="closeEditModal()" style="flex:1;padding:11px;background:var(--cream);color:var(--text-mid);border:1.5px solid var(--soft-gold);border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;cursor:pointer">Cancel</button>
+      <button onclick="saveEditTime()" style="flex:1;padding:11px;background:linear-gradient(135deg,var(--rose),var(--deep-rose));color:white;border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:0.9rem;font-weight:600;cursor:pointer">Save Time</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── SA TIME HELPERS (Africa/Johannesburg = UTC+2, no DST) ───────────────────
+// ── SA TIME = UTC+2, no DST ─────────────────────────────────────────────────
+// All functions work purely with UTC milliseconds — never trust device timezone.
+
+const SA_OFFSET_MS = 2 * 60 * 60 * 1000; // UTC+2 in ms
+
+function utcMsToSAComponents(utcMs) {
+  // Break UTC ms into SA date/time components
+  const saMs = utcMs + SA_OFFSET_MS;
+  const d = new Date(saMs);
+  return {
+    year:   d.getUTCFullYear(),
+    month:  d.getUTCMonth(),      // 0-indexed
+    date:   d.getUTCDate(),
+    hours:  d.getUTCHours(),
+    minutes:d.getUTCMinutes(),
+    seconds:d.getUTCSeconds()
+  };
+}
+
+function nowSA() {
+  // Returns a plain object with SA time components (not a real Date)
+  // Use .getTime() equivalent: nowSA_ms()
+  const c = utcMsToSAComponents(Date.now());
+  // Return a Date object set to SA time fields (for .toDateString() comparisons)
+  return new Date(c.year, c.month, c.date, c.hours, c.minutes, c.seconds);
+}
+
+function nowSAFromISO(isoStr) {
+  // Convert a stored UTC ISO string to SA-time Date for comparisons
+  const utcMs = new Date(isoStr).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  return new Date(c.year, c.month, c.date, c.hours, c.minutes, c.seconds);
+}
+
+function toSADatetimeLocal(dateOrISO) {
+  // Convert a UTC Date or ISO string → "YYYY-MM-DDTHH:MM" in SA time
+  // Safe regardless of device timezone
+  const utcMs = (dateOrISO instanceof Date)
+    ? dateOrISO.getTime()
+    : new Date(dateOrISO).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  const p = n => String(n).padStart(2,'0');
+  return `${c.year}-${p(c.month+1)}-${p(c.date)}T${p(c.hours)}:${p(c.minutes)}`;
+}
+
+function datetimeLocalToISO(dtStr) {
+  // Convert "YYYY-MM-DDTHH:MM" (SA time input) → UTC ISO string
+  // Parse manually to avoid browser timezone interpretation of the string
+  if (!dtStr) return new Date().toISOString();
+  const [datePart, timePart] = dtStr.split('T');
+  const [year, month, day]   = datePart.split('-').map(Number);
+  const [hours, minutes]     = (timePart || '00:00').split(':').map(Number);
+  // This is SA time — subtract 2h to get UTC
+  const utcMs = Date.UTC(year, month - 1, day, hours, minutes, 0) - SA_OFFSET_MS;
+  return new Date(utcMs).toISOString();
+}
+
+function formatSATime(isoString) {
+  // Display a UTC ISO string as SA time, device-timezone-independent
+  const utcMs = new Date(isoString).getTime();
+  const c = utcMsToSAComponents(utcMs);
+  const p = n => String(n).padStart(2,'0');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${c.date} ${months[c.month]} ${p(c.hours)}:${p(c.minutes)}`;
+}
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let state = {
+  log: [],
+  settings: {
+    twinA: { feedSize: 60, feedsPerDay: 8 },
+    twinB: { feedSize: 60, feedsPerDay: 8 },
+    autoFeedA: { enabled: true,  startHour: 2, intervalHours: 3 },
+    autoFeedB: { enabled: true,  startHour: 2, intervalHours: 3 }
+  }
+};
+
+
+// ─── LEGACY DATA MIGRATION ────────────────────────────────────────────────────
+function fixLegacyEntry(e) {
+  e = Object.assign({}, e);
+
+  // Normalise location — old schema merged loc/from/dest into one 'dest' field
+  if (!e.loc && !e.from && e.dest) {
+    if (e.type === 'adjust' || e.type === 'discard' || e.type === 'stockcount' || e.type === 'use') {
+      e.loc = e.dest;
+    } else if (e.type === 'feed') {
+      e.from = e.dest;
+    }
+  }
+
+  // Map old location keys to new names
+  const locMap = { fridge:'hospFridge', hosp:'hospFrozen', home:'homeFrozen',
+                   'freeze-hosp':'hospFrozen', 'freeze-home':'homeFrozen' };
+  if (e.loc  && locMap[e.loc])  e.loc  = locMap[e.loc];
+  if (e.from && locMap[e.from]) e.from = locMap[e.from];
+  if (e.dest && locMap[e.dest]) e.dest = locMap[e.dest];
+
+  // Fix adjust missing 'dir' field — default to 'add' if amount positive
+  if (e.type === 'adjust' && !e.dir) {
+    e.dir = e.amount >= 0 ? 'add' : 'sub';
+    e.amount = Math.abs(Number(e.amount));
+  }
+
+  // Fix stockcount missing delta
+  if (e.type === 'stockcount' && e.delta === undefined) e.delta = 0;
+
+  return e;
+}
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('milkTracker');
+    if (s) {
+      state = JSON.parse(s);
+      // Migrate old flat settings format
+      if (state.settings && !state.settings.twinA) {
+        const old = state.settings;
+        state.settings = {
+          twinA: { feedSize: old.feedSize || 60, feedsPerDay: old.feedsPerDay || 8 },
+          twinB: { feedSize: old.feedSize || 60, feedsPerDay: old.feedsPerDay || 8 }
+        };
+      }
+      // Fix any legacy entries in local storage too
+      if (state.log) state.log = state.log.map(fixLegacyEntry);
+    }
+  } catch(e) {}
+}
+
+function saveState() {
+  localStorage.setItem('milkTracker', JSON.stringify(state));
+}
+
+
+function locLabel(loc) {
+  return loc === 'hospFridge' ? '🏥🧊 Hosp Fridge'
+       : loc === 'hospFrozen' ? '🏥❄️ Hosp Frozen'
+       : loc === 'homeFrozen' ? '🏠❄️ Home Frozen'
+       : loc;
+}
+function locActive(loc) {
+  return loc === 'hospFridge' ? 'active-fridge'
+       : loc === 'hospFrozen' ? 'active-freeze'
+       : 'active-home';
+}
+function locIds() { return ['hospFridge','hospFrozen','homeFrozen']; }
+
+// ─── COMPUTED STOCK ───────────────────────────────────────────────────────────
+// Locations: hospFridge | hospFrozen | homeFrozen
+function getStock() {
+  let hospFridge = 0, hospFrozen = 0, homeFrozen = 0;
+
+  function applyLoc(loc, delta) {
+    if (loc === 'hospFridge') hospFridge += delta;
+    else if (loc === 'hospFrozen') hospFrozen += delta;
+    else if (loc === 'homeFrozen') homeFrozen += delta;
+    // legacy migration
+    else if (loc === 'fridge') hospFridge += delta;
+    else if (loc === 'hosp') hospFrozen += delta;
+    else if (loc === 'home') homeFrozen += delta;
+  }
+
+  for (const e of state.log) {
+    if (e.type === 'pump') {
+      const dest = e.dest;
+      if (dest === 'hospFridge' || dest === 'fridge') hospFridge += e.total;
+      else if (dest === 'hospFrozen' || dest === 'freeze-hosp') hospFrozen += e.total;
+      else if (dest === 'homeFrozen' || dest === 'freeze-home') homeFrozen += e.total;
+    } else if (e.type === 'use') {
+      applyLoc(e.loc, -e.amount);
+    } else if (e.type === 'move') {
+      const a = e.action;
+      const amt = e.amount;
+      if (a === 'home-to-hospfrozen') { homeFrozen -= amt; hospFrozen += amt; }
+      else if (a === 'hospfrozen-to-hospfridge') { hospFrozen -= amt; hospFridge += amt; }
+      else if (a === 'hospfridge-to-hospfrozen') { hospFridge -= amt; hospFrozen += amt; }
+      // legacy
+      else if (a === 'freeze') { hospFridge -= amt; if (e.loc==='home') homeFrozen += amt; else hospFrozen += amt; }
+      else if (a === 'thaw') { if (e.loc==='home') homeFrozen -= amt; else hospFrozen -= amt; hospFridge += amt; }
+    } else if (e.type === 'feed') {
+      const total = e.twin === 'Both' ? e.amount * 2 : e.amount;
+      applyLoc(e.from, -total);
+    } else if (e.type === 'discard') {
+      applyLoc(e.loc, -e.amount);
+    } else if (e.type === 'adjust') {
+      applyLoc(e.loc, e.dir === 'add' ? e.amount : -e.amount);
+    } else if (e.type === 'stockcount') {
+      applyLoc(e.loc, e.delta);
+    }
+  }
+  return {
+    hospFridge: Math.max(0, Math.round(hospFridge)),
+    hospFrozen: Math.max(0, Math.round(hospFrozen)),
+    homeFrozen: Math.max(0, Math.round(homeFrozen))
+  };
+}
+
+function getTodayPumped() {
+  const todaySA = nowSA().toDateString();
+  return state.log
+    .filter(e => e.type === 'pump' && nowSAFromISO(e.time).toDateString() === todaySA)
+    .reduce((s, e) => s + e.total, 0);
+}
+
+// nowSAFromISO defined above in SA TIME helpers
+
+// ─── UI UPDATES ───────────────────────────────────────────────────────────────
+function updateDashboard() {
+  const st = getStock();
+  const total = st.hospFridge + st.hospFrozen + st.homeFrozen;
+  const maxBar = Math.max(total, 500);
+
+  document.getElementById('tile-hospFridge').textContent = st.hospFridge;
+  document.getElementById('tile-hospFrozen').textContent = st.hospFrozen;
+  document.getElementById('tile-homeFrozen').textContent = st.homeFrozen;
+  document.getElementById('tile-today').textContent = getTodayPumped();
+
+  document.getElementById('hospFridge-ml-label').textContent = st.hospFridge + ' ml';
+  document.getElementById('hospFrozen-ml-label').textContent = st.hospFrozen + ' ml';
+  document.getElementById('homeFrozen-ml-label').textContent = st.homeFrozen + ' ml';
+
+  document.getElementById('bar-hospFridge').style.width = Math.min(100, (st.hospFridge/maxBar)*100) + '%';
+  document.getElementById('bar-hospFrozen').style.width = Math.min(100, (st.hospFrozen/maxBar)*100) + '%';
+  document.getElementById('bar-homeFrozen').style.width = Math.min(100, (st.homeFrozen/maxBar)*100) + '%';
+
+  // Buffer check — Twin A = hospFridge (fresh), Twin B = hospFrozen (thawed)
+  const tA = state.settings.twinA;
+  const tB = state.settings.twinB;
+  const bufferEl = document.getElementById('fn-buffer');
+  const subEl = document.getElementById('fn-sub');
+  const alertEl = document.getElementById('stockAlert');
+
+  if (tA.feedSize && tB.feedSize) {
+    const feedsA = (st.hospFridge||0) / tA.feedSize;
+    const feedsB = (st.hospFrozen||0) / tB.feedSize;
+    const minFeeds = Math.min(feedsA, feedsB);
+    bufferEl.textContent = minFeeds.toFixed(1) + ' feeds';
+    subEl.textContent = `A (Hosp Fridge): ${st.hospFridge}ml = ${feedsA.toFixed(1)} feeds · B (Hosp Frozen): ${st.hospFrozen}ml = ${feedsB.toFixed(1)} feeds · Target: 2+ each`;
+    const dangerTwin = feedsA < 1 ? 'Twin A (Hosp Fridge)' : feedsB < 1 ? 'Twin B (Hosp Frozen)' : null;
+    const warnTwin = feedsA < 2 ? 'Twin A' : feedsB < 2 ? 'Twin B' : null;
+    if (dangerTwin) {
+      alertEl.className = 'danger';
+      alertEl.textContent = `🚨 Critical! ${dangerTwin} has less than 1 feed in stock!`;
+    } else if (warnTwin) {
+      alertEl.className = 'warn';
+      alertEl.textContent = `⚠️ Low buffer for ${warnTwin} — under 2 feeds. Pump more soon!`;
+    } else {
+      alertEl.className = 'ok';
+      alertEl.textContent = `✅ Good — A: ${feedsA.toFixed(1)} feeds (🏥🧊) · B: ${feedsB.toFixed(1)} feeds (🏥❄️)`;
+    }
+  } else {
+    bufferEl.textContent = total + ' ml';
+    subEl.textContent = 'Set feed sizes in Settings to see feed count';
+    alertEl.style.display = 'none';
+  }
+}
+
+// ─── FORM STATE ───────────────────────────────────────────────────────────────
+let pumpDest = null;
+let useLoc = 'hospFridge';
+let mvAction = null;
+let mvLoc = 'home';
+let feedTwin = null;
+let feedFrom = null;
+let activeFilter = 'all';
+
+function setDest(d) {
+  pumpDest = d;
+  ['hospFridge','hospFrozen','homeFrozen'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
+  document.getElementById('dest-'+d).classList.add(locActive(d));
+}
+
+function setUseLoc(l) {
+  useLoc = l;
+  locIds().forEach(x => document.getElementById('use-loc-'+x).className = 'toggle-btn');
+  document.getElementById('use-loc-'+l).classList.add(locActive(l));
+}
+
+function setMvAction(a) {
+  mvAction = a;
+  ['home-to-hospfrozen','hospfrozen-to-hospfridge','hospfridge-to-hospfrozen'].forEach(x => {
+    const el = document.getElementById('mv-'+x);
+    if (el) el.className = 'toggle-btn';
+  });
+  const el = document.getElementById('mv-'+a);
+  if (el) el.classList.add('active-freeze');
+}
+
+function setMvLoc(l) { mvLoc = l; } // legacy — no longer used
+
+// Twin A = hospFridge (fresh), Twin B = hospFrozen (thawed)
+function autoSourceForTwin(twin) {
+  if (twin === 'A') return 'hospFridge';
+  if (twin === 'B') return 'hospFrozen';
+  return null;
+}
+
+function setFeedTwin(t) {
+  feedTwin = t;
+  ['A','B','Both'].forEach(x => document.getElementById('feed-'+x.toLowerCase()).className = 'toggle-btn');
+  document.getElementById('feed-'+t.toLowerCase()).classList.add('active-fridge');
+
+  const infoBox = document.getElementById('feed-source-info');
+  const infoText = document.getElementById('feed-source-text');
+  const isOverride = document.getElementById('feed-override-chk').checked;
+  const isBreast = feedType === 'breast';
+
+  // Breastfeed mode — hide stock source, just confirm which twin is breastfeeding
+  if (isBreast) {
+    infoBox.style.display = 'block';
+    infoBox.style.background = '#fce8f4';
+    infoBox.style.borderColor = '#d4a0c0';
+    const label = t === 'Both' ? 'Both twins' : 'Twin ' + t;
+    infoText.innerHTML = '🤱 <strong>' + label + '</strong> — breastfeeding, no stock deducted';
+    return;
+  }
+
+  // Bottle mode — show stock source
+  if (!isOverride) {
+    if (t === 'A') {
+      infoBox.style.display = 'block';
+      infoBox.style.background = '#eefff4';
+      infoBox.style.borderColor = 'var(--sage)';
+      infoText.innerHTML = '🏥🧊 <strong>Twin A</strong> — auto-deducting from <strong>Hospital Fridge</strong> (fresh)';
+    } else if (t === 'B') {
+      infoBox.style.display = 'block';
+      infoBox.style.background = '#ddeeff';
+      infoBox.style.borderColor = 'var(--sky)';
+      infoText.innerHTML = '🏥❄️ <strong>Twin B</strong> — auto-deducting from <strong>Hospital Frozen</strong> (thawed)';
+    } else {
+      infoBox.style.display = 'block';
+      infoBox.style.background = 'var(--cream)';
+      infoBox.style.borderColor = 'var(--soft-gold)';
+      infoText.innerHTML = '👶👶 <strong>Both</strong> — Twin A from 🏥🧊 Hosp Fridge · Twin B from 🏥❄️ Hosp Frozen';
+    }
+  }
+  updateFeedTotal();
+}
+
+function setBreast(side) {
+  breastSide = side;
+  ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn');
+  const cls = side === 'left' ? 'active-fridge' : side === 'right' ? 'active-freeze' : 'active-home';
+  document.getElementById('breast-'+side).classList.add(cls);
+}
+
+function setFeedType(t) {
+  feedType = t;
+  ['bottle','breast'].forEach(x => document.getElementById('feedtype-'+x).className = 'toggle-btn');
+  document.getElementById('feedtype-'+t).classList.add(t === 'bottle' ? 'active-fridge' : 'active-freeze');
+  const isBreast = t === 'breast';
+  document.getElementById('breast-info').style.display           = isBreast ? 'block' : 'none';
+  document.getElementById('breast-details').style.display        = isBreast ? 'block' : 'none';
+  document.getElementById('feed-amount-section').style.display   = isBreast ? 'none'  : 'block';
+  document.getElementById('feed-override-section').style.display = isBreast ? 'none'  : 'block';
+  document.getElementById('feed-override-panel').style.display   = 'none';
+  document.getElementById('feed-source-info').style.display      = 'none';
+  if (!isBreast) { breastSide = null; ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn'); }
+  if (feedTwin) setFeedTwin(feedTwin);
+}
+
+function toggleFeedOverride() {
+  const on = document.getElementById('feed-override-chk').checked;
+  document.getElementById('feed-override-panel').style.display = on ? 'block' : 'none';
+  const infoBox = document.getElementById('feed-source-info');
+  if (on) {
+    infoBox.style.display = 'none';
+    feedFrom = null;
+  } else {
+    feedFrom = null;
+    if (feedTwin) setFeedTwin(feedTwin); // re-show auto source
+  }
+}
+
+function setFeedFrom(f) {
+  feedFrom = f;
+  locIds().forEach(x => document.getElementById('feed-from-'+x).className = 'toggle-btn');
+  document.getElementById('feed-from-'+f).classList.add(locActive(f));
+}
+
+function updatePumpTotal() {
+  const l = parseFloat(document.getElementById('pump-left').value) || 0;
+  const r = parseFloat(document.getElementById('pump-right').value) || 0;
+  document.getElementById('pump-total').textContent = (l+r) + ' ml';
+}
+
+function updateFeedTotal() {
+  const amt = parseFloat(document.getElementById('feed-amount').value) || 0;
+  const row = document.getElementById('feed-total-row');
+  const tA = state.settings.twinA;
+  const tB = state.settings.twinB;
+  if (feedTwin === 'Both' && amt > 0) {
+    row.textContent = `Total: ${amt*2}ml — Twin A: ${amt}ml from 🏥🧊 Hosp Fridge · Twin B: ${amt}ml from 🏥❄️ Hosp Frozen`;
+  } else if (feedTwin === 'A' && amt > 0) {
+    const hint = tA.feedSize ? ` (usual: ${tA.feedSize}ml)` : '';
+    row.textContent = `${amt}ml for Twin A from 🏥🧊 Hosp Fridge (fresh)${hint}`;
+  } else if (feedTwin === 'B' && amt > 0) {
+    const hint = tB.feedSize ? ` (usual: ${tB.feedSize}ml)` : '';
+    row.textContent = `${amt}ml for Twin B from 🏥❄️ Hosp Frozen (thawed)${hint}`;
+  } else row.textContent = '';
+}
+
+// ─── STOCK MANAGEMENT FORM STATE ─────────────────────────────────────────────
+let scLoc = null, adjLoc = null, adjDir = null, discLoc = null, discReason = null;
+let feedType = 'bottle'; // 'bottle' or 'breast'
+let breastSide = null;  // 'left' | 'right' | 'both'
+
+function setScLoc(l) {
+  scLoc = l;
+  locIds().forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('sc-loc-'+l).classList.add(locActive(l));
+  const st = getStock();
+  const cur = st[l] || 0;
+  document.getElementById('sc-current').style.display = 'block';
+  document.getElementById('sc-current-val').textContent = cur + 'ml';
+  updateScDiff();
+}
+
+function updateScDiff() {
+  const actual = parseFloat(document.getElementById('sc-actual').value);
+  const diffEl = document.getElementById('sc-diff');
+  if (!scLoc || isNaN(actual)) { diffEl.style.display = 'none'; return; }
+  const st = getStock();
+  const cur = st[scLoc] || 0;
+  const delta = actual - cur;
+  diffEl.style.display = 'block';
+  if (delta === 0) {
+    diffEl.style.background = '#eefff4'; diffEl.style.color = 'var(--deep-sage)';
+    diffEl.textContent = '✅ Matches calculated stock — no adjustment needed';
+  } else if (delta > 0) {
+    diffEl.style.background = '#eefff4'; diffEl.style.color = 'var(--deep-sage)';
+    diffEl.textContent = `➕ ${delta}ml more than calculated — will add to stock`;
+  } else {
+    diffEl.style.background = '#fff3d4'; diffEl.style.color = '#8a6000';
+    diffEl.textContent = `➖ ${Math.abs(delta)}ml less than calculated — will reduce stock`;
+  }
+}
+
+function saveStockCount() {
+  if (!scLoc) { toast('Select a location'); return; }
+  const actual = parseFloat(document.getElementById('sc-actual').value);
+  if (isNaN(actual) || actual < 0) { toast('Enter actual stock amount'); return; }
+  const st = getStock();
+  const cur = st[scLoc] || 0;
+  const delta = actual - cur;
+  state.log.push({
+    id: Date.now(), type: 'stockcount', time: new Date().toISOString(),
+    loc: scLoc, actual, delta,
+    notes: document.getElementById('sc-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('sc-actual').value = '';
+  document.getElementById('sc-diff').style.display = 'none';
+  document.getElementById('sc-current').style.display = 'none';
+  const savedLoc = scLoc;
+  scLoc = null;
+  locIds().forEach(x => document.getElementById('sc-loc-'+x).className = 'toggle-btn');
+  toast(`📦 Stock count saved — ${actual}ml for ${locLabel(savedLoc)}`);
+}
+
+function setAdjLoc(l) {
+  adjLoc = l;
+  locIds().forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  document.getElementById('adj-loc-'+l).classList.add(locActive(l));
+}
+function setAdjDir(d) {
+  adjDir = d;
+  ['add','sub'].forEach(x => document.getElementById('adj-dir-'+x).className = 'toggle-btn');
+  document.getElementById('adj-dir-'+d).classList.add(d==='add'?'active-home':'active-fridge');
+}
+
+function saveAdjustment() {
+  if (!adjLoc) { toast('Select a location'); return; }
+  if (!adjDir) { toast('Select add or subtract'); return; }
+  const amount = parseFloat(document.getElementById('adj-amount').value);
+  if (!amount) { toast('Enter amount'); return; }
+  const reason = document.getElementById('adj-reason').value;
+  if (!reason) { toast('Enter a reason for the adjustment'); return; }
+  state.log.push({
+    id: Date.now(), type: 'adjust', time: new Date().toISOString(),
+    loc: adjLoc, dir: adjDir, amount, reason
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('adj-amount').value = '';
+  document.getElementById('adj-reason').value = '';
+  adjLoc = null; adjDir = null;
+  locIds().forEach(x => document.getElementById('adj-loc-'+x).className = 'toggle-btn');
+  ['add','sub'].forEach(x => document.getElementById('adj-dir-'+x).className = 'toggle-btn');
+  toast('⚖️ Adjustment saved');
+}
+
+function setDiscLoc(l) {
+  discLoc = l;
+  locIds().forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  document.getElementById('disc-loc-'+l).classList.add(locActive(l));
+}
+function setDiscReason(r) {
+  discReason = r;
+  ['expired','contaminated','freezer','other'].forEach(x => document.getElementById('disc-r-'+x).className = 'toggle-btn');
+  const key = r.toLowerCase().replace(' ','');
+  if (document.getElementById('disc-r-'+key)) document.getElementById('disc-r-'+key).classList.add('active-fridge');
+}
+
+function saveDiscard() {
+  if (!discLoc) { toast('Select a location'); return; }
+  if (!discReason) { toast('Select a reason'); return; }
+  const amount = parseFloat(document.getElementById('disc-amount').value);
+  if (!amount) { toast('Enter amount to discard'); return; }
+  const st = getStock();
+  const avail = st[discLoc] || 0;
+  if (amount > avail) { toast(`Only ${avail}ml available in that location`); return; }
+  if (!confirm(`Discard ${amount}ml from ${locLabel(discLoc)}? Reason: ${discReason}. This cannot be undone.`)) return;
+  state.log.push({
+    id: Date.now(), type: 'discard', time: new Date().toISOString(),
+    loc: discLoc, amount, reason: discReason,
+    notes: document.getElementById('disc-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('disc-amount').value = '';
+  document.getElementById('disc-notes').value = '';
+  discLoc = null; discReason = null;
+  locIds().forEach(x => document.getElementById('disc-loc-'+x).className = 'toggle-btn');
+  ['expired','contaminated','freezer','other'].forEach(x => document.getElementById('disc-r-'+x).className = 'toggle-btn');
+  toast('🗑️ Discard recorded — ' + amount + 'ml');
+}
+
+// ─── SAVE ACTIONS ─────────────────────────────────────────────────────────────
+function savePump() {
+  const left = parseFloat(document.getElementById('pump-left').value) || 0;
+  const right = parseFloat(document.getElementById('pump-right').value) || 0;
+  if (!left && !right) { toast('Enter at least one breast amount'); return; }
+  if (!pumpDest) { toast('Choose where to store this milk'); return; }
+  const total = left + right;
+  const time = datetimeLocalToISO(document.getElementById('pump-time').value);
+  state.log.push({
+    id: Date.now(),
+    type: 'pump',
+    time,
+    left, right, total,
+    dest: pumpDest,
+    notes: document.getElementById('pump-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('pump-left').value = '';
+  document.getElementById('pump-right').value = '';
+  document.getElementById('pump-notes').value = '';
+  document.getElementById('pump-total').textContent = '0 ml';
+  document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
+  pumpDest = null;
+  ['hospFridge','hospFrozen','homeFrozen'].forEach(x => document.getElementById('dest-'+x).className = 'toggle-btn');
+  toast('✅ Pump session saved — ' + total + 'ml');
+  showPage('home', document.querySelector('nav button'));
+}
+
+function useStock() {
+  const amount = parseFloat(document.getElementById('use-amount').value);
+  if (!amount) { toast('Enter amount used'); return; }
+  const st = getStock();
+  const avail = st[useLoc] || 0;
+  if (amount > avail) { toast('Not enough stock in that location'); return; }
+  state.log.push({
+    id: Date.now(), type: 'use', time: new Date().toISOString(),
+    loc: useLoc, amount,
+    notes: document.getElementById('use-note').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('use-amount').value = '';
+  document.getElementById('use-note').value = '';
+  toast('✅ ' + amount + 'ml recorded');
+}
+
+function saveMoveStock() {
+  const amount = parseFloat(document.getElementById('mv-amount').value);
+  if (!amount) { toast('Enter amount'); return; }
+  if (!mvAction) { toast('Choose a transfer type'); return; }
+  const st = getStock();
+  // Check source has enough
+  const srcChecks = {
+    'home-to-hospfrozen': ['homeFrozen', 'Home Frozen'],
+    'hospfrozen-to-hospfridge': ['hospFrozen', 'Hosp Frozen'],
+    'hospfridge-to-hospfrozen': ['hospFridge', 'Hosp Fridge']
+  };
+  const chk = srcChecks[mvAction];
+  if (chk && amount > (st[chk[0]] || 0)) { toast('Not enough in ' + chk[1]); return; }
+  state.log.push({
+    id: Date.now(), type: 'move', time: new Date().toISOString(),
+    action: mvAction, amount,
+    notes: document.getElementById('mv-notes').value
+  });
+  saveState(); updateDashboard(); renderLog();
+  document.getElementById('mv-amount').value = '';
+  document.getElementById('mv-notes').value = '';
+  mvAction = null;
+  ['home-to-hospfrozen','hospfrozen-to-hospfridge','hospfridge-to-hospfrozen'].forEach(x => {
+    const el = document.getElementById('mv-'+x); if (el) el.className = 'toggle-btn';
+  });
+  toast('✅ Stock movement saved');
+}
+
+function saveFeed() {
+  if (!feedTwin) { toast('Select which twin(s)'); return; }
+
+  // ── Breastfeed session — no stock deduction ──────────────────────────────
+  if (feedType === 'breast') {
+    const duration = parseFloat(document.getElementById('breast-duration').value) || null;
+    state.log.push({
+      id: Date.now(), type: 'breastfeed', time: new Date().toISOString(),
+      twin: feedTwin,
+      breast: breastSide,
+      duration: duration,
+      notes: document.getElementById('feed-notes').value
+    });
+    saveState(); updateDashboard(); renderLog(); updateSummary();
+    document.getElementById('feed-notes').value = '';
+    document.getElementById('breast-duration').value = '';
+    breastSide = null;
+    ['left','right','both'].forEach(x => document.getElementById('breast-'+x).className = 'toggle-btn');
+    const twins = feedTwin === 'Both' ? 'Both twins' : 'Twin ' + feedTwin;
+    const breastLabel = breastSide ? ' · ' + breastSide + ' breast' : '';
+    const durLabel = duration ? ' · ' + duration + ' min' : '';
+    toast('🤱 Breastfeed logged for ' + twins + durLabel);
+    return;
+  }
+
+  // ── Bottle feed ───────────────────────────────────────────────────────────
+  const amount = parseFloat(document.getElementById('feed-amount').value);
+  if (!amount) { toast('Enter feed amount'); return; }
+  const isOverride = document.getElementById('feed-override-chk').checked;
+  const st = getStock();
+
+  if (isOverride) {
+    if (!feedFrom) { toast('Select where feed came from'); return; }
+    const totalUsed = feedTwin === 'Both' ? amount * 2 : amount;
+    const avail = st[feedFrom] || 0;
+    if (totalUsed > avail) { toast('Not enough stock in that location'); return; }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from: feedFrom, notes: document.getElementById('feed-notes').value });
+  } else if (feedTwin === 'Both') {
+    if (amount > (st.hospFridge || 0)) { toast(`Not enough in Hosp Fridge for Twin A (need ${amount}ml, have ${st.hospFridge}ml)`); return; }
+    if (amount > (st.hospFrozen || 0)) { toast(`Not enough in Hosp Frozen for Twin B (need ${amount}ml, have ${st.hospFrozen}ml)`); return; }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: 'A', amount, from: 'hospFridge', notes: document.getElementById('feed-notes').value });
+    state.log.push({ id: Date.now()+1, type: 'feed', time: new Date().toISOString(), twin: 'B', amount, from: 'hospFrozen', notes: document.getElementById('feed-notes').value });
+  } else {
+    const from = autoSourceForTwin(feedTwin);
+    const avail = st[from] || 0;
+    if (amount > avail) {
+      toast(`Not enough in ${locLabel(from)} for Twin ${feedTwin} (need ${amount}ml, have ${avail}ml)`);
+      return;
+    }
+    state.log.push({ id: Date.now(), type: 'feed', time: new Date().toISOString(), twin: feedTwin, amount, from, notes: document.getElementById('feed-notes').value });
+  }
+
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  document.getElementById('feed-amount').value = '';
+  document.getElementById('feed-notes').value = '';
+  document.getElementById('feed-total-row').textContent = '';
+  const totalMl = feedTwin === 'Both' ? amount * 2 : amount;
+  toast('🍼 Feed recorded — ' + totalMl + 'ml');
+}
+
+// ─── LOG RENDER ───────────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderLog();
+}
+
+function renderLog() {
+  const list = document.getElementById('log-list');
+  let entries = [...state.log].reverse();
+  if (activeFilter !== 'all') {
+    const map = { pump: 'pump', feed: ['feed','breastfeed'], move: ['move','use'], discard: ['discard','adjust','stockcount'] };
+    const types = Array.isArray(map[activeFilter]) ? map[activeFilter] : [map[activeFilter]];
+    entries = entries.filter(e => types.includes(e.type));
+  }
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty-state"><span>📝</span>No entries yet</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const dt = formatSATime(e.time);
+    if (e.type === 'pump') {
+      const destMap = {
+        hospFridge: '🏥🧊 Hosp Fridge', hospFrozen: '🏥❄️ Hosp Frozen', homeFrozen: '🏠❄️ Home Frozen',
+        fridge: '🏥🧊 Hosp Fridge', 'freeze-hosp': '🏥❄️ Hosp Frozen', 'freeze-home': '🏠❄️ Home Frozen'
+      };
+      const destLabel = destMap[e.dest] || e.dest;
+      const cls = (e.dest === 'hospFridge' || e.dest === 'fridge') ? 'badge-fridge' : 'badge-freeze';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🤱 ${e.total}ml</div>
+          <div class="log-meta">${dt} · L: ${e.left}ml R: ${e.right}ml${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="log-badge ${cls}">${destLabel}</span>
+          <div style="display:flex;gap:4px">
+            <button class="del-btn" style="color:var(--deep-sky);font-size:0.75rem;padding:2px 6px" onclick="editPumpTime(${e.id})">✏️</button>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    } else if (e.type === 'feed') {
+      const total = e.twin === 'Both' ? e.amount*2 : e.amount;
+      const fromMap = { hospFridge: '🏥🧊', hospFrozen: '🏥❄️', homeFrozen: '🏠❄️', fridge: '🏥🧊', hosp: '🏥❄️', home: '🏠❄️' };
+      const fromLabel = fromMap[e.from] || '🍼';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🍼 ${total}ml</div>
+          <div class="log-meta">${dt} · Twin ${e.twin} · ${fromLabel} · ${e.amount}ml/twin${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="log-badge badge-feed">Feed</span>
+          <div style="display:flex;gap:4px">
+            <button class="del-btn" style="color:#7a2050;font-size:0.75rem;padding:2px 6px" title="Convert to breastfeed" onclick="convertFeedType(${e.id})">🤱</button>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    } else if (e.type === 'use') {
+      const loc = locLabel(e.loc);
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">📤 ${e.amount}ml</div>
+          <div class="log-meta">${dt} · From ${loc}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-feed">Used</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'move') {
+      const mvLabels = {
+        'home-to-hospfrozen': '🏠❄️ → 🏥❄️',
+        'hospfrozen-to-hospfridge': '🏥❄️ → 🏥🧊 (Thaw)',
+        'hospfridge-to-hospfrozen': '🏥🧊 → 🏥❄️ (Freeze)',
+        'freeze': '→ Freeze', 'thaw': 'Thaw →'
+      };
+      const actionLabel = mvLabels[e.action] || e.action;
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount">🔄 ${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${actionLabel}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-thaw">Transfer</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'discard') {
+      const dLocLabel = locLabel(e.loc);
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#c00">🗑️ -${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${dLocLabel} · ${e.reason}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-discard">Discarded</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'adjust') {
+      const aLocLabel = locLabel(e.loc);
+      const sign = e.dir === 'add' ? '+' : '-';
+      const cls = e.dir === 'add' ? 'badge-adjust-up' : 'badge-adjust-down';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:${e.dir==='add'?'var(--deep-sage)':'#8a6000'}">${sign}${e.amount}ml</div>
+          <div class="log-meta">${dt} · ${aLocLabel}${e.reason ? ' · '+e.reason : ''}</div>
+        </div>
+        <div><span class="log-badge ${cls}">Adjust</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'stockcount') {
+      const scLocLabel = locLabel(e.loc);
+      const sign = e.delta >= 0 ? '+' : '';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#5a3d9a">📦 ${e.actual}ml</div>
+          <div class="log-meta">${dt} · ${scLocLabel} · Set to ${e.actual}ml (${sign}${e.delta}ml adj)${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div><span class="log-badge badge-stockcount">Stock Take</span>
+        <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button></div>
+      </div>`;
+    } else if (e.type === 'breastfeed') {
+      const twins = e.twin === 'Both' ? '👶👶 Both' : '👶 Twin ' + e.twin;
+      const breastMap = { left: '◀️ Left', right: 'Right ▶️', both: '◀️▶️ Both' };
+      const breastStr = e.breast ? ' · ' + breastMap[e.breast] : '';
+      const durStr    = e.duration ? ' · ' + e.duration + ' min' : '';
+      return `<div class="log-item">
+        <div class="log-main">
+          <div class="log-amount" style="color:#7a2050">🤱 Breastfed</div>
+          <div class="log-meta">${dt} · ${twins}${breastStr}${durStr}${e.notes ? ' · '+e.notes : ''}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="log-badge" style="background:#fce8f4;color:#7a2050;border:1px solid #d4a0c0">Breastfeed</span>
+          <div style="display:flex;gap:4px">
+            <button class="del-btn" style="color:var(--deep-rose);font-size:0.75rem;padding:2px 6px" title="Convert to bottle feed" onclick="convertFeedType(${e.id})">🍼</button>
+            <button class="del-btn" onclick="deleteEntry(${e.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    return '';
+  }).join('');
+}
+
+// ─── CONVERT FEED TYPE ────────────────────────────────────────────────────────
+let _convertId = null;
+let _convertDirection = null; // 'to-breast' or 'to-bottle'
+let _cvTwin = null;
+let _cvBreast = null;
+
+function convertFeedType(id) {
+  const entry = state.log.find(e => String(e.id) === String(id));
+  if (!entry) { toast('Entry not found'); return; }
+  _convertId = String(id);
+
+  const modal = document.getElementById('convert-modal');
+  const title = document.getElementById('convert-modal-title');
+  const desc  = document.getElementById('convert-modal-desc');
+  const bottleFields = document.getElementById('convert-bottle-fields');
+
+  const breastFields = document.getElementById('convert-breast-fields');
+
+  if (entry.type === 'feed') {
+    // Convert bottle → breastfeed
+    _convertDirection = 'to-breast';
+    title.textContent = '🤱 Convert to Breastfeed';
+    desc.textContent  = 'Stock will be restored. Add breastfeed details below.';
+    bottleFields.style.display = 'none';
+    breastFields.style.display = 'block';
+    // Pre-fill from existing entry if it was previously a breastfeed
+    _cvBreast = null;
+    document.getElementById('cv-duration').value = '';
+    document.getElementById('cv-notes').value = entry.notes && entry.notes !== 'Auto-feed' ? entry.notes : '';
+  } else if (entry.type === 'breastfeed') {
+    // Convert breastfeed → bottle
+    _convertDirection = 'to-bottle';
+    title.textContent = '🍼 Convert to Bottle Feed';
+    desc.textContent  = 'Enter the amount given and which twin. Stock will be deducted accordingly.';
+    bottleFields.style.display = 'block';
+    breastFields.style.display = 'none';
+    // Pre-fill twin from entry
+    _cvTwin = entry.twin || null;
+    if (_cvTwin) setCvTwin(_cvTwin);
+    // Pre-fill amount from settings
+    const defAmt = entry.twin === 'B' ? state.settings.twinB.feedSize : state.settings.twinA.feedSize;
+    document.getElementById('convert-amount').value = defAmt || '';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function setCvTwin(t) {
+  _cvTwin = t;
+  ['a','b','both'].forEach(x => document.getElementById('cv-twin-'+x).className = 'toggle-btn');
+  document.getElementById('cv-twin-'+t.toLowerCase()).classList.add('active-fridge');
+  const info = document.getElementById('cv-source-info');
+  if (t === 'A') info.textContent = '🏥🧊 Twin A — deducts from Hospital Fridge';
+  else if (t === 'B') info.textContent = '🏥❄️ Twin B — deducts from Hospital Frozen';
+  else info.textContent = '👶👶 Both — Twin A: Hosp Fridge · Twin B: Hosp Frozen';
+}
+
+function setCvBreast(side) {
+  _cvBreast = side;
+  ['left','right','both'].forEach(x => document.getElementById('cv-breast-'+x).className = 'toggle-btn');
+  const cls = side === 'left' ? 'active-fridge' : side === 'right' ? 'active-freeze' : 'active-home';
+  document.getElementById('cv-breast-'+side).classList.add(cls);
+}
+
+function closeConvertModal() {
+  document.getElementById('convert-modal').style.display = 'none';
+  _convertId = null; _convertDirection = null; _cvTwin = null; _cvBreast = null;
+  // Reset breast buttons
+  ['left','right','both'].forEach(x => {
+    const el = document.getElementById('cv-breast-'+x);
+    if (el) el.className = 'toggle-btn';
+  });
+  document.getElementById('cv-duration').value = '';
+  document.getElementById('cv-notes').value = '';
+}
+
+async function saveConvert() {
+  if (!_convertId) return;
+  const idx = state.log.findIndex(e => String(e.id) === String(_convertId));
+  if (idx === -1) { toast('Entry not found'); closeConvertModal(); return; }
+  const entry = state.log[idx];
+
+  if (_convertDirection === 'to-breast') {
+    const cvDuration = parseFloat(document.getElementById('cv-duration').value) || null;
+    const cvNotes    = document.getElementById('cv-notes').value || 'Converted from bottle';
+    state.log[idx] = {
+      id: entry.id, type: 'breastfeed', time: entry.time,
+      twin: entry.twin,
+      breast: _cvBreast || null,
+      duration: cvDuration,
+      notes: cvNotes
+    };
+    const breastStr = _cvBreast ? ' · ' + _cvBreast + ' breast' : '';
+    const durStr    = cvDuration ? ' · ' + cvDuration + 'min' : '';
+    toast('🤱 Converted to breastfeed — stock restored' + breastStr + durStr);
+
+  } else if (_convertDirection === 'to-bottle') {
+    if (!_cvTwin) { toast('Select which twin'); return; }
+    const amount = parseFloat(document.getElementById('convert-amount').value);
+    if (!amount) { toast('Enter feed amount'); return; }
+
+    // Check stock availability
+    const st = getStock();
+    // Temporarily we need to account for the fact the breastfeed entry
+    // doesn't hold stock — so just check current stock levels
+    if (_cvTwin === 'A' || _cvTwin === 'Both') {
+      if (amount > st.hospFridge) { toast('Not enough in Hospital Fridge for Twin A'); return; }
+    }
+    if (_cvTwin === 'B' || _cvTwin === 'Both') {
+      if (amount > (_cvTwin === 'Both' ? getStock().hospFrozen : st.hospFrozen)) {
+        toast('Not enough in Hospital Frozen for Twin B'); return;
+      }
+    }
+
+    if (_cvTwin === 'Both') {
+      // Replace with two feed entries
+      state.log.splice(idx, 1,
+        { id: entry.id,     type: 'feed', time: entry.time, twin: 'A', amount, from: 'hospFridge', notes: entry.notes || 'Converted from breastfeed' },
+        { id: entry.id + 1, type: 'feed', time: entry.time, twin: 'B', amount, from: 'hospFrozen', notes: entry.notes || 'Converted from breastfeed' }
+      );
+    } else {
+      const from = _cvTwin === 'A' ? 'hospFridge' : 'hospFrozen';
+      state.log[idx] = { id: entry.id, type: 'feed', time: entry.time, twin: _cvTwin, amount, from, notes: entry.notes || 'Converted from breastfeed' };
+    }
+    toast('🍼 Converted to bottle feed — stock deducted');
+  }
+
+  saveState();
+  updateDashboard();
+  renderLog();
+  updateSummary();
+  closeConvertModal();
+
+  // Auto-sync to sheet immediately
+  if (SCRIPT_URL) {
+    setSyncStatus('syncing', '⏳ Syncing to sheet...');
+    try {
+      const result = await gasRequest('push', { log: state.log, settings: state.settings });
+      if (result && result.status === 'ok') {
+        setSyncStatus('ok', '✅ Sheet updated — ' + state.log.length + ' entries');
+      } else {
+        setSyncStatus('error', '❌ Local saved but sheet sync failed — push manually');
+      }
+    } catch(e) {
+      setSyncStatus('error', '❌ Local saved but sheet sync failed — push manually');
+    }
+  }
+}
+
+// Close convert modal on backdrop click
+document.getElementById('convert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeConvertModal();
+});
+
+function deleteEntry(id) {
+  if (!confirm('Delete this entry?')) return;
+  state.log = state.log.filter(e => e.id !== id);
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  toast('Entry deleted');
+}
+
+let _editingId = null;
+
+function editPumpTime(id) {
+  // Use loose comparison — IDs may be number or string depending on source
+  const entry = state.log.find(e => String(e.id) === String(id));
+  if (!entry) { toast('Could not find entry'); return; }
+  _editingId = String(id);
+  document.getElementById('edit-time-input').value = toSADatetimeLocal(new Date(entry.time));
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').style.display = 'none';
+  _editingId = null;
+}
+
+function saveEditTime() {
+  if (!_editingId) { toast('No entry selected'); return; }
+  const newTimeStr = document.getElementById('edit-time-input').value;
+  if (!newTimeStr) { toast('Please select a time'); return; }
+  const newISO = datetimeLocalToISO(newTimeStr);
+  // Match by string ID to handle number/string mismatch
+  const idx = state.log.findIndex(e => String(e.id) === String(_editingId));
+  if (idx === -1) { toast('Entry not found'); closeEditModal(); return; }
+  state.log[idx] = Object.assign({}, state.log[idx], { time: newISO });
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  closeEditModal();
+  toast('✅ Pump time updated');
+}
+
+// Close modal on backdrop click
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+// ─── SETTINGS & SUMMARY ───────────────────────────────────────────────────────
+function saveSettingsManual() {
+  saveSettings();
+  const confirm = document.getElementById('save-settings-confirm');
+  confirm.style.display = 'block';
+  setTimeout(() => confirm.style.display = 'none', 2500);
+}
+
+function saveSettings() {
+  const fsA = parseFloat(document.getElementById('set-feed-size-a').value);
+  const fdA = parseFloat(document.getElementById('set-feeds-day-a').value);
+  const fsB = parseFloat(document.getElementById('set-feed-size-b').value);
+  const fdB = parseFloat(document.getElementById('set-feeds-day-b').value);
+  if (fsA) state.settings.twinA.feedSize = fsA;
+  if (fdA) state.settings.twinA.feedsPerDay = fdA;
+  if (fsB) state.settings.twinB.feedSize = fsB;
+  if (fdB) state.settings.twinB.feedsPerDay = fdB;
+  // Auto-feed settings per twin
+  if (!state.settings.autoFeedA) state.settings.autoFeedA = { enabled: true, startHour: 2, intervalHours: 3 };
+  if (!state.settings.autoFeedB) state.settings.autoFeedB = { enabled: true, startHour: 2, intervalHours: 3 };
+  state.settings.autoFeedA.enabled       = document.getElementById('set-autofeed-a').checked;
+  state.settings.autoFeedA.startHour     = parseInt(document.getElementById('set-feed-start-a').value);
+  state.settings.autoFeedA.intervalHours = parseInt(document.getElementById('set-feed-interval-a').value);
+  state.settings.autoFeedB.enabled       = document.getElementById('set-autofeed-b').checked;
+  state.settings.autoFeedB.startHour     = parseInt(document.getElementById('set-feed-start-b').value);
+  state.settings.autoFeedB.intervalHours = parseInt(document.getElementById('set-feed-interval-b').value);
+  saveState(); updateDashboard(); updateNextFeedDisplay();
+  const bufA = (fsA || state.settings.twinA.feedSize) * 2;
+  const bufB = (fsB || state.settings.twinB.feedSize) * 2;
+  document.getElementById('set-buffer-a').textContent = bufA + 'ml';
+  document.getElementById('set-buffer-b').textContent = bufB + 'ml';
+  // Auto-push settings to sheet after a short debounce (avoid firing on every keystroke)
+  scheduleSyncSettings();
+}
+
+let _settingsSyncTimer = null;
+function scheduleSyncSettings() {
+  clearTimeout(_settingsSyncTimer);
+  _settingsSyncTimer = setTimeout(async function() {
+    if (!SCRIPT_URL) return;
+    try {
+      const result = await gasRequest('push', { log: state.log, settings: state.settings });
+      if (result && result.status === 'ok') {
+        const el = document.getElementById('sync-status');
+        if (el) {
+          el.style.background = '#eefff4'; el.style.color = 'var(--deep-sage)';
+          el.textContent = '✅ Settings synced to sheet';
+        }
+      }
+    } catch(e) {
+      // Silent fail — settings are saved locally, user can sync manually
+      console.warn('Settings sync failed:', e.message);
+    }
+  }, 1500); // 1.5s debounce — waits for user to stop changing values
+}
+
+function loadSettings() {
+  document.getElementById('set-feed-size-a').value = state.settings.twinA.feedSize || '';
+  document.getElementById('set-feeds-day-a').value = state.settings.twinA.feedsPerDay || '';
+  document.getElementById('set-feed-size-b').value = state.settings.twinB.feedSize || '';
+  document.getElementById('set-feeds-day-b').value = state.settings.twinB.feedsPerDay || '';
+  document.getElementById('set-buffer-a').textContent = (state.settings.twinA.feedSize * 2 || '—') + (state.settings.twinA.feedSize ? 'ml' : '');
+  document.getElementById('set-buffer-b').textContent = (state.settings.twinB.feedSize * 2 || '—') + (state.settings.twinB.feedSize ? 'ml' : '');
+  const afA = state.settings.autoFeedA || { enabled: true, startHour: 2, intervalHours: 3 };
+  const afB = state.settings.autoFeedB || { enabled: true, startHour: 2, intervalHours: 3 };
+  document.getElementById('set-autofeed-a').checked = afA.enabled !== false;
+  document.getElementById('set-feed-start-a').value = String(afA.startHour || 2);
+  document.getElementById('set-feed-interval-a').value = String(afA.intervalHours || 3);
+  document.getElementById('set-autofeed-b').checked = afB.enabled !== false;
+  document.getElementById('set-feed-start-b').value = String(afB.startHour || 2);
+  document.getElementById('set-feed-interval-b').value = String(afB.intervalHours || 3);
+  updateNextFeedDisplay();
+}
+
+function updateSummary() {
+  const todaySA = nowSA().toDateString();
+  const todayEntries = state.log.filter(e => nowSAFromISO(e.time).toDateString() === todaySA);
+  const pumped = todayEntries.filter(e => e.type==='pump').reduce((s,e)=>s+e.total,0);
+  const feedA = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='A'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
+  const feedB = todayEntries.filter(e=>e.type==='feed'&&(e.twin==='B'||e.twin==='Both')).reduce((s,e)=>s+e.amount,0);
+  const sessions = todayEntries.filter(e=>e.type==='pump').length;
+  const el = document.getElementById('summary-today');
+  el.innerHTML = `
+    <div class="info-row"><span>Pump sessions</span><span>${sessions}</span></div>
+    <div class="info-row"><span>Total pumped</span><span>${pumped} ml</span></div>
+    <div class="info-row"><span>Twin A fed</span><span>${feedA} ml</span></div>
+    <div class="info-row"><span>Twin B fed</span><span>${feedB} ml</span></div>
+    <div class="info-row"><span>Total fed</span><span>${feedA+feedB} ml</span></div>
+  `;
+}
+
+// ─── EXPORT ───────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = [['ID','Date','Type','Left(ml)','Right(ml)','Total(ml)','Twin','Amount(ml)','Location/Dest','Notes']];
+  for (const e of state.log) {
+    const d = new Date(e.time).toLocaleString();
+    if (e.type==='pump') rows.push([e.id,d,'pump',e.left,e.right,e.total,'','',e.dest,e.notes||'']);
+    else if (e.type==='feed') rows.push([e.id,d,'feed','','','',e.twin,e.amount,e.from,e.notes||'']);
+    else if (e.type==='use') rows.push([e.id,d,'use','','','','',e.amount,e.loc,e.notes||'']);
+    else if (e.type==='move') rows.push([e.id,d,'move-'+e.action,'','','','',e.amount,e.loc,e.notes||'']);
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'milk-tracker-' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click();
+}
+
+function clearAll() {
+  if (!confirm('Clear ALL data? This cannot be undone.')) return;
+  state.log = [];
+  saveState(); updateDashboard(); renderLog(); updateSummary();
+  toast('All data cleared');
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (id === 'settings') { loadSettings(); updateSummary(); }
+  if (id === 'log') renderLog();
+}
+
+// ─── SCRIPT URL ──────────────────────────────────────────────────────────────
+const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
+const BAKED_URL = 'https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec';
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
+
+function saveScriptUrl() {
+  SCRIPT_URL = document.getElementById('script-url').value.trim();
+  localStorage.setItem(SCRIPT_URL_KEY, SCRIPT_URL);
+  setSyncStatus(SCRIPT_URL ? 'ready' : 'none');
+}
+
+function setSyncStatus(state, msg) {
+  const el = document.getElementById('sync-status');
+  const ind = document.getElementById('sync-indicator');
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (state === 'none') {
+    el.style.background = '#f5f0e8'; el.style.color = 'var(--text-mid)';
+    el.textContent = 'Not connected — paste your Apps Script URL below';
+    ind.style.display = 'none';
+  } else if (state === 'ready') {
+    el.style.background = '#eefff4'; el.style.color = 'var(--deep-sage)';
+    el.textContent = '✅ URL saved — ready to sync';
+    ind.style.display = 'none';
+  } else if (state === 'syncing') {
+    el.style.background = '#fff3d4'; el.style.color = '#8a6000';
+    el.textContent = msg || '⏳ Syncing...';
+    ind.style.display = 'block'; dot.textContent = '⏳'; lbl.textContent = 'Syncing...';
+  } else if (state === 'ok') {
+    el.style.background = '#eefff4'; el.style.color = 'var(--deep-sage)';
+    el.textContent = msg || '✅ Sync complete';
+    ind.style.display = 'block'; dot.textContent = '✅'; lbl.textContent = 'Synced';
+    setTimeout(() => { ind.style.display = 'none'; }, 4000);
+  } else if (state === 'error') {
+    el.style.background = '#fde8e8'; el.style.color = '#8a0000';
+    el.textContent = msg || '❌ Sync failed';
+    ind.style.display = 'block'; dot.textContent = '❌'; lbl.textContent = 'Sync error';
+  }
+  // Update last sync time
+  if (state === 'ok') {
+    const last = document.getElementById('sync-last');
+    last.style.display = 'block';
+    last.textContent = 'Last sync: ' + new Date().toLocaleString('en-GB', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+// ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
+// Apps Script v6 sets CORS headers so plain fetch() works from any origin.
+
+async function gasRequest(action, data) {
+  let url = SCRIPT_URL + '?action=' + action;
+  if (data) {
+    url += '&data=' + encodeURIComponent(JSON.stringify(data));
+  }
+  const resp = await fetch(url, { redirect: 'follow' });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('Bad response: ' + text.slice(0,120)); }
+}
+
+async function syncToSheet() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Pushing to sheet...');
+  try {
+    const result = await gasRequest('push', { log: state.log, settings: state.settings });
+    if (result.status === 'ok') {
+      setSyncStatus('ok', '✅ Pushed ' + state.log.length + ' entries to sheet');
+      toast('☁️ Pushed to Google Sheet');
+    } else {
+      setSyncStatus('error', '❌ Push failed: ' + (result.message || 'unknown'));
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Push failed — ' + e.message);
+    toast('❌ Push failed');
+  }
+}
+
+async function syncFromSheet() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Pulling from sheet...');
+  try {
+    const result = await gasRequest('pull', null);
+    if (result.status === 'ok') {
+      const cloudLog = result.log || [];
+      const cloudSettings = result.settings || null;
+      const merged = mergeLog(state.log, cloudLog);
+      state.log = merged;
+      if (cloudSettings && cloudSettings.twinA) state.settings = cloudSettings;
+      saveState();
+      updateDashboard(); renderLog(); updateSummary();
+      setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries total');
+      toast('☁️ Pulled — ' + merged.length + ' entries');
+    } else {
+      setSyncStatus('error', '❌ Pull failed: ' + (result.message || 'unknown'));
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Pull failed — ' + e.message);
+    toast('❌ Pull failed');
+  }
+}
+
+async function fullSync() {
+  if (!SCRIPT_URL) { toast('Paste your Apps Script URL in Settings first'); return; }
+  setSyncStatus('syncing', '⏳ Step 1/2 — pulling from sheet...');
+  try {
+    const pullResult = await gasRequest('pull', null);
+    if (pullResult.status !== 'ok') throw new Error('Pull failed: ' + (pullResult.message || 'unknown'));
+
+    const merged = mergeLog(state.log, pullResult.log || []);
+    state.log = merged;
+    if (pullResult.settings && pullResult.settings.twinA) state.settings = pullResult.settings;
+    saveState();
+
+    setSyncStatus('syncing', '⏳ Step 2/2 — pushing to sheet...');
+    const pushResult = await gasRequest('push', { log: state.log, settings: state.settings });
+    if (pushResult.status !== 'ok') throw new Error('Push failed: ' + (pushResult.message || 'unknown'));
+
+    updateDashboard(); renderLog(); updateSummary(); loadSettings();
+    setSyncStatus('ok', '✅ Full sync complete — ' + merged.length + ' entries');
+    toast('✅ Full sync done — ' + merged.length + ' entries');
+  } catch(e) {
+    setSyncStatus('error', '❌ Sync failed: ' + e.message);
+    toast('❌ Sync failed: ' + e.message);
+  }
+}
+
+function mergeLog(local, cloud) {
+  const map = new Map();
+  // Cloud first, then local overrides (local is freshest)
+  [...cloud, ...local].forEach(e => map.set(String(e.id), fixLegacyEntry(e)));
+  return Array.from(map.values()).sort((a,b) => new Date(a.time) - new Date(b.time));
+}
+
+
+// Auto-sync on load if URL exists
+async function autoSyncOnLoad() {
+  if (!SCRIPT_URL) return;
+  setSyncStatus('syncing', '⏳ Loading cloud data...');
+  try {
+    const result = await gasRequest('pull', null);
+    if (result.status === 'ok') {
+      const merged = mergeLog(state.log, result.log || []);
+      state.log = merged;
+      if (result.settings && result.settings.twinA) state.settings = result.settings;
+      saveState();
+      updateDashboard(); renderLog(); updateSummary(); loadSettings();
+      setSyncStatus('ok', '✅ Cloud data loaded — ' + merged.length + ' entries');
+    } else {
+      setSyncStatus('error', '❌ Auto-sync failed: ' + (result.message || 'unknown'));
+    }
+  } catch(e) {
+    setSyncStatus('error', '❌ Auto-sync failed — ' + e.message);
+  }
+}
+
+
+// ─── AUTO-FEED SCHEDULE ───────────────────────────────────────────────────────
+
+function getFeedSlots(startHour, intervalHours, fromTimeArg, toTimeArg) {
+  // Works entirely in UTC milliseconds — device timezone ignored.
+  // fromTime / toTime can be Date objects or ISO strings (both treated as UTC).
+  // Returns array of UTC ms values for each feed slot strictly between from and to.
+
+  const fromUtcMs = (fromTimeArg instanceof Date)
+    ? fromTimeArg.getTime()
+    : new Date(fromTimeArg).getTime();
+  const toUtcMs = (toTimeArg instanceof Date)
+    ? toTimeArg.getTime()
+    : new Date(toTimeArg).getTime();
+
+  const slots = [];
+
+  // Find SA date components for fromTime so we can anchor the first slot
+  const saFrom = utcMsToSAComponents(fromUtcMs);
+
+  // Scan 4 days from the from-date to cover any window
+  for (let dayOffset = -1; dayOffset <= 3; dayOffset++) {
+    // Build the slot time: SA date + dayOffset days, at startHour SA time
+    // Convert SA slot time to UTC ms: Date.UTC(...) - SA_OFFSET_MS
+    const slotBaseUtcMs = Date.UTC(
+      saFrom.year, saFrom.month, saFrom.date + dayOffset,
+      startHour, 0, 0
+    ) - SA_OFFSET_MS;
+
+    for (let s = 0; s < Math.ceil(24 / intervalHours); s++) {
+      const slotUtcMs = slotBaseUtcMs + s * intervalHours * 3600000;
+      if (slotUtcMs > fromUtcMs && slotUtcMs <= toUtcMs) {
+        slots.push(slotUtcMs); // store as UTC ms
+      }
+    }
+  }
+
+  return slots; // array of UTC ms numbers
+}
+
+function getLastFeedTime() {
+  // Generic last feed — used for backwards compat
+  const feeds = state.log.filter(e => e.type === 'feed' || e.type === 'breastfeed');
+  if (!feeds.length) return null;
+  return new Date(feeds.reduce((a,b) => new Date(a.time) > new Date(b.time) ? a : b).time);
+}
+
+function getLastFeedTimeForTwin(twin) {
+  const feeds = state.log.filter(e =>
+    (e.type === 'feed' || e.type === 'breastfeed') &&
+    (e.twin === twin || e.twin === 'Both')
+  );
+  if (!feeds.length) return null;
+  return new Date(feeds.reduce((a,b) => new Date(a.time) > new Date(b.time) ? a : b).time);
+}
+
+function midnightSAUtc() {
+  const c = utcMsToSAComponents(Date.now());
+  return new Date(Date.UTC(c.year, c.month, c.date, 0, 0, 0) - SA_OFFSET_MS);
+}
+
+function applyAutoFeedsForTwin(twin, af, feedSize, fromStock, stockKey) {
+  if (!af.enabled || !feedSize) return { deducted: 0, details: [] };
+
+  const lastFeed = getLastFeedTimeForTwin(twin);
+  const fromTime = lastFeed || midnightSAUtc();
+  const slots = getFeedSlots(af.startHour, af.intervalHours, fromTime, new Date());
+  if (!slots.length) return { deducted: 0, details: [] };
+
+  let deducted = 0;
+  const details = [];
+
+  for (const slotUtcMs of slots) {
+    if (feedSize > getStock()[stockKey]) break; // out of stock
+
+    const slotISO = new Date(slotUtcMs).toISOString();
+
+    // Skip if this twin already has a feed/breastfeed within 45 min of slot
+    const alreadyFed = state.log.some(e =>
+      (e.type === 'feed' || e.type === 'breastfeed') &&
+      (e.twin === twin || e.twin === 'Both') &&
+      Math.abs(new Date(e.time).getTime() - slotUtcMs) < 45 * 60000
+    );
+    if (alreadyFed) continue;
+
+    if (feedSize <= getStock()[stockKey]) {
+      state.log.push({
+        id: slotUtcMs + (twin === 'B' ? 1 : 0),
+        type: 'feed', time: slotISO,
+        twin, amount: feedSize, from: fromStock,
+        notes: 'Auto-feed'
+      });
+      deducted++;
+      const sc = utcMsToSAComponents(slotUtcMs);
+      details.push(pad2(sc.hours) + ':' + pad2(sc.minutes));
+    }
+  }
+  return { deducted, details };
+}
+
+function applyAutoFeeds() {
+  const s = state.settings;
+  const afA = s.autoFeedA || { enabled: true, startHour: 2, intervalHours: 3 };
+  const afB = s.autoFeedB || { enabled: true, startHour: 2, intervalHours: 3 };
+  // Migrate old shared autoFeed setting
+  if (s.autoFeed && !s.autoFeedA) {
+    s.autoFeedA = Object.assign({}, s.autoFeed);
+    s.autoFeedB = Object.assign({}, s.autoFeed);
+  }
+
+  const resA = applyAutoFeedsForTwin('A', afA, s.twinA.feedSize, 'hospFridge', 'hospFridge');
+  const resB = applyAutoFeedsForTwin('B', afB, s.twinB.feedSize, 'hospFrozen', 'hospFrozen');
+
+  const totalDeducted = resA.deducted + resB.deducted;
+  if (totalDeducted > 0) {
+    saveState(); updateDashboard(); renderLog(); updateSummary();
+    const parts = [];
+    if (resA.deducted) parts.push('Twin A: ' + resA.details.join(', '));
+    if (resB.deducted) parts.push('Twin B: ' + resB.details.join(', '));
+    const banner = document.getElementById('autoFeedBanner');
+    document.getElementById('autoFeedDetail').textContent =
+      totalDeducted + ' feed(s) auto-deducted — ' + parts.join(' · ');
+    banner.style.display = 'block';
+    setTimeout(() => banner.style.display = 'none', 10000);
+  }
+  updateNextFeedDisplay();
+}
+
+function pad2(n) { return String(n).padStart(2,'0'); }
+
+function updateNextFeedDisplay() {
+  const el = document.getElementById('next-feed-display');
+  if (!el) return;
+  const af = state.settings.autoFeed || { startHour: 2, intervalHours: 3 };
+  const now = nowSA();
+  const nowUtc = new Date();
+  const slots = getFeedSlots(af.startHour, af.intervalHours, nowUtc, new Date(nowUtc.getTime() + af.intervalHours * 3600000 + 60000));
+  if (slots.length) {
+    const sc = utcMsToSAComponents(slots[0]);
+    el.textContent = '⏰ Next feed slot: ' + pad2(sc.hours) + ':' + pad2(sc.minutes) + ' SA time';
+  } else {
+    el.textContent = '⏰ Next feed slot calculating...';
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+loadState();
+
+// Restore script URL input
+document.getElementById('script-url').value = SCRIPT_URL || BAKED_URL;
+if (!localStorage.getItem(SCRIPT_URL_KEY)) { SCRIPT_URL = BAKED_URL; localStorage.setItem(SCRIPT_URL_KEY, BAKED_URL); }
+
+// Set default pump time to now
+document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
+
+updateDashboard();
+renderLog();
+
+// Apply auto-feed deductions for missed slots
+applyAutoFeeds();
+
+// Auto pull from sheet on load
+autoSyncOnLoad();
+</script>
+</body>
+</html>
