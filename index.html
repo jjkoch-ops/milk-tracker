@@ -658,7 +658,7 @@
     </div>
     <div id="sync-last" style="font-size:0.75rem;color:var(--text-light);margin-bottom:10px;display:none"></div>
     <label>Apps Script Web App URL</label>
-    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec" oninput="saveScriptUrl()">
+    <input type="text" id="script-url" placeholder="https://script.google.com/macros/s/..." value="https://script.google.com/macros/s/AKfycbwXeI47J19ISvpvT2-OOQGWtjYMbS94y-dJ53VLwv7idpk5Y20wZ-PlW11TCBhJFlF9/exec" oninput="saveScriptUrl()">
     <div style="display:flex;gap:8px;margin-top:10px">
       <button class="btn-secondary" style="flex:1" onclick="syncToSheet()">⬆️ Push to Sheet</button>
       <button class="btn-secondary" style="flex:1" onclick="syncFromSheet()">⬇️ Pull from Sheet</button>
@@ -1888,7 +1888,7 @@ function showPage(id, btn) {
 
 // ─── SCRIPT URL ──────────────────────────────────────────────────────────────
 const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
-const BAKED_URL = 'https://script.google.com/macros/s/AKfycbyhuH8-ysq7WXOKCAnifJUaVDZOT6wMIUihPjjvO3U9cFJ_owqAmcezIGhImpchSH5h5w/exec';
+const BAKED_URL = 'https://script.google.com/macros/s/AKfycbwXeI47J19ISvpvT2-OOQGWtjYMbS94y-dJ53VLwv7idpk5Y20wZ-PlW11TCBhJFlF9/exec';
 let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
 
 function saveScriptUrl() {
