@@ -1889,7 +1889,9 @@ function showPage(id, btn) {
 // ─── SCRIPT URL ──────────────────────────────────────────────────────────────
 const SCRIPT_URL_KEY = 'milkTrackerScriptUrl';
 const BAKED_URL = 'https://script.google.com/macros/s/AKfycbwXeI47J19ISvpvT2-OOQGWtjYMbS94y-dJ53VLwv7idpk5Y20wZ-PlW11TCBhJFlF9/exec';
-let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || BAKED_URL;
+// Always use BAKED_URL — clears any stale URL from localStorage
+localStorage.setItem(SCRIPT_URL_KEY, BAKED_URL);
+let SCRIPT_URL = BAKED_URL;
 
 function saveScriptUrl() {
   SCRIPT_URL = document.getElementById('script-url').value.trim();
@@ -1940,28 +1942,43 @@ let _cbCount = 0;
 function jsonpGet(params, timeoutMs) {
   return new Promise(function(resolve, reject) {
     const cbName = '__gc' + (++_cbCount);
-    const timer = setTimeout(function() {
+    // Declare sc at function scope so timeout/callback can reference it
+    var sc = null;
+
+    function cleanup() {
       delete window[cbName];
       if (sc && sc.parentNode) sc.parentNode.removeChild(sc);
+    }
+
+    const timer = setTimeout(function() {
+      cleanup();
       reject(new Error('Timed out — check Apps Script URL & deployment'));
     }, timeoutMs || 15000);
 
     window[cbName] = function(data) {
       clearTimeout(timer);
-      delete window[cbName];
-      if (sc && sc.parentNode) sc.parentNode.removeChild(sc);
+      cleanup();
       resolve(data);
     };
 
     const qs = Object.entries(Object.assign({ callback: cbName }, params))
-      .map(function(kv) { return kv[0] + '=' + encodeURIComponent(typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : String(kv[1])); })
-      .join('&');
+      .map(function(kv) {
+        return kv[0] + '=' + encodeURIComponent(
+          typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : String(kv[1])
+        );
+      }).join('&');
 
-    var sc = document.createElement('script');
+    sc = document.createElement('script');
     sc.onerror = function() {
       clearTimeout(timer);
-      delete window[cbName];
-      reject(new Error('Script load failed — check URL'));
+      cleanup();
+      // Fallback to plain fetch (works if server adds CORS headers)
+      fetch(SCRIPT_URL + '?action=pull', { redirect: 'follow' })
+        .then(function(r) { return r.json(); })
+        .then(resolve)
+        .catch(function() {
+          reject(new Error('Pull failed — try opening app from a saved file rather than GitHub Pages'));
+        });
     };
     sc.src = SCRIPT_URL + '?' + qs;
     document.head.appendChild(sc);
@@ -2034,22 +2051,24 @@ async function syncFromSheet() {
   setSyncStatus('syncing', '⏳ Pulling from sheet...');
   try {
     const result = await gasRequest('pull', null);
-    if (result.status === 'ok') {
+    if (result && result.status === 'ok') {
       const cloudLog = result.log || [];
       const cloudSettings = result.settings || null;
       const merged = mergeLog(state.log, cloudLog);
       state.log = merged;
       if (cloudSettings) state.settings = mergeSettings(state.settings, cloudSettings);
       saveState();
-      updateDashboard(); renderLog(); updateSummary();
-      setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries total');
+      updateDashboard(); renderLog(); updateSummary(); loadSettings();
+      setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries');
       toast('☁️ Pulled — ' + merged.length + ' entries');
     } else {
-      setSyncStatus('error', '❌ Pull failed: ' + (result.message || 'unknown'));
+      const msg = (result && result.message) || 'unknown error';
+      setSyncStatus('error', '❌ Pull failed: ' + msg);
+      toast('❌ Pull failed: ' + msg);
     }
   } catch(e) {
     setSyncStatus('error', '❌ Pull failed — ' + e.message);
-    toast('❌ Pull failed');
+    toast('❌ ' + e.message);
   }
 }
 
@@ -2272,8 +2291,7 @@ function updateNextFeedDisplay() {
 loadState();
 
 // Restore script URL input
-document.getElementById('script-url').value = SCRIPT_URL || BAKED_URL;
-if (!localStorage.getItem(SCRIPT_URL_KEY)) { SCRIPT_URL = BAKED_URL; localStorage.setItem(SCRIPT_URL_KEY, BAKED_URL); }
+document.getElementById('script-url').value = BAKED_URL;
 
 // Set default pump time to now
 document.getElementById('pump-time').value = toSADatetimeLocal(nowSA());
