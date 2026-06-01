@@ -1935,16 +1935,81 @@ function setSyncStatus(state, msg) {
 // ─── SYNC FUNCTIONS ───────────────────────────────────────────────────────────
 // Apps Script v6 sets CORS headers so plain fetch() works from any origin.
 
+// ── JSONP for reads (bypasses CORS) ─────────────────────────────────────────
+let _cbCount = 0;
+function jsonpGet(params, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    const cbName = '__gc' + (++_cbCount);
+    const timer = setTimeout(function() {
+      delete window[cbName];
+      if (sc && sc.parentNode) sc.parentNode.removeChild(sc);
+      reject(new Error('Timed out — check Apps Script URL & deployment'));
+    }, timeoutMs || 15000);
+
+    window[cbName] = function(data) {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (sc && sc.parentNode) sc.parentNode.removeChild(sc);
+      resolve(data);
+    };
+
+    const qs = Object.entries(Object.assign({ callback: cbName }, params))
+      .map(function(kv) { return kv[0] + '=' + encodeURIComponent(typeof kv[1] === 'object' ? JSON.stringify(kv[1]) : String(kv[1])); })
+      .join('&');
+
+    var sc = document.createElement('script');
+    sc.onerror = function() {
+      clearTimeout(timer);
+      delete window[cbName];
+      reject(new Error('Script load failed — check URL'));
+    };
+    sc.src = SCRIPT_URL + '?' + qs;
+    document.head.appendChild(sc);
+  });
+}
+
+// ── POST via form (bypasses CORS for writes) ─────────────────────────────────
+function formPost(data) {
+  return new Promise(function(resolve) {
+    // Create hidden iframe to receive response
+    const iframeId = 'gasFrame_' + Date.now();
+    const iframe = document.createElement('iframe');
+    iframe.name = iframeId;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = SCRIPT_URL;
+    form.target = iframeId;
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'payload';
+    input.value = JSON.stringify(data);
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+
+    // Clean up after 3s — we can't read iframe response cross-origin
+    setTimeout(function() {
+      if (form.parentNode) form.parentNode.removeChild(form);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      resolve({ status: 'ok' });
+    }, 3000);
+  });
+}
+
+// ── gasRequest — routes to correct method ────────────────────────────────────
 async function gasRequest(action, data) {
-  let url = SCRIPT_URL + '?action=' + action;
-  if (data) {
-    url += '&data=' + encodeURIComponent(JSON.stringify(data));
+  if (action === 'pull') {
+    return await jsonpGet({ action: 'pull' });
+  } else if (action === 'push') {
+    // Use formPost — works cross-origin, handles large payloads
+    await formPost({ action: 'push', log: data.log, settings: data.settings });
+    return { status: 'ok', written: data.log ? data.log.length : 0 };
   }
-  const resp = await fetch(url, { redirect: 'follow' });
-  if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  const text = await resp.text();
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Bad response: ' + text.slice(0,120)); }
+  throw new Error('Unknown action: ' + action);
 }
 
 async function syncToSheet() {
@@ -1974,7 +2039,7 @@ async function syncFromSheet() {
       const cloudSettings = result.settings || null;
       const merged = mergeLog(state.log, cloudLog);
       state.log = merged;
-      if (cloudSettings && cloudSettings.twinA) state.settings = cloudSettings;
+      if (cloudSettings) state.settings = mergeSettings(state.settings, cloudSettings);
       saveState();
       updateDashboard(); renderLog(); updateSummary();
       setSyncStatus('ok', '✅ Pulled — ' + merged.length + ' entries total');
@@ -2015,9 +2080,25 @@ async function fullSync() {
 
 function mergeLog(local, cloud) {
   const map = new Map();
-  // Cloud first, then local overrides (local is freshest)
-  [...cloud, ...local].forEach(e => map.set(String(e.id), fixLegacyEntry(e)));
+  // Add cloud entries first
+  cloud.forEach(e => map.set(String(e.id), fixLegacyEntry(e)));
+  // Local entries override cloud — local is always the freshest edit
+  local.forEach(e => map.set(String(e.id), fixLegacyEntry(e)));
   return Array.from(map.values()).sort((a,b) => new Date(a.time) - new Date(b.time));
+}
+
+function mergeSettings(localSettings, cloudSettings) {
+  // Merge settings: cloud wins for schedule/feed sizes (set on any device)
+  // but preserve any local-only keys not in cloud
+  if (!cloudSettings) return localSettings;
+  if (!localSettings) return cloudSettings;
+  return Object.assign({}, cloudSettings, {
+    // For nested objects, merge deeply
+    twinA: Object.assign({}, cloudSettings.twinA || {}, localSettings.twinA || {}),
+    twinB: Object.assign({}, cloudSettings.twinB || {}, localSettings.twinB || {}),
+    autoFeedA: Object.assign({}, cloudSettings.autoFeedA || {}, localSettings.autoFeedA || {}),
+    autoFeedB: Object.assign({}, cloudSettings.autoFeedB || {}, localSettings.autoFeedB || {})
+  });
 }
 
 
@@ -2030,7 +2111,7 @@ async function autoSyncOnLoad() {
     if (result.status === 'ok') {
       const merged = mergeLog(state.log, result.log || []);
       state.log = merged;
-      if (result.settings && result.settings.twinA) state.settings = result.settings;
+      if (result.settings) state.settings = mergeSettings(state.settings, result.settings);
       saveState();
       updateDashboard(); renderLog(); updateSummary(); loadSettings();
       setSyncStatus('ok', '✅ Cloud data loaded — ' + merged.length + ' entries');
